@@ -116,3 +116,19 @@
   border: 2px solid #f7f6f3;
   cursor: pointer;
 }
+
+/* Field badges — left → right loop (negative delay phases each badge) */
+@keyframes badge-drift {
+  from {
+    transform: translateX(-20vw);
+  }
+  to {
+    transform: translateX(110vw);
+  }
+}
+
+.badge-drift {
+  animation-name: badge-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
