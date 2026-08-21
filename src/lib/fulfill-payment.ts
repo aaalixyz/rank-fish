@@ -4,7 +4,7 @@
  */
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { listings, payments } from "@/db/schema";
+import { boostMessages, listings, payments } from "@/db/schema";
 
 export async function fulfillPaymentByCheckoutId(checkoutId: string) {
   const [payment] = await db
@@ -17,7 +17,6 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
     return { ok: false as const, reason: "payment_not_found" as const };
   }
 
-  // Already processed — safe to call more than once
   if (payment.status === "completed") {
     return {
       ok: true as const,
@@ -33,7 +32,9 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
         url: payment.url,
         title: payment.title,
         description: payment.description,
+        faviconUrl: payment.faviconUrl ?? "",
         bid: payment.targetBid,
+        level: payment.level ?? 1,
         clicks: 0,
       })
       .returning();
@@ -50,7 +51,6 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
     return { ok: true as const, alreadyDone: false as const, listingId: listing.id };
   }
 
-  // Boost an existing listing
   if (!payment.listingId) {
     return { ok: false as const, reason: "missing_listing" as const };
   }
@@ -65,14 +65,25 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
     return { ok: false as const, reason: "listing_not_found" as const };
   }
 
-  // Only raise the bid — never lower it if two checkouts race
   await db
     .update(listings)
     .set({
       bid: sql`GREATEST(${listings.bid}, ${payment.targetBid})`,
+      level: sql`GREATEST(${listings.level}, ${payment.level})`,
       updatedAt: new Date(),
     })
     .where(eq(listings.id, payment.listingId));
+
+  const note = payment.message?.trim() ?? "";
+  if (note.length > 0) {
+    await db.insert(boostMessages).values({
+      listingId: payment.listingId,
+      paymentId: payment.id,
+      message: note,
+      xHandle: payment.xHandle ?? "",
+      amountPaid: payment.amountPaid,
+    });
+  }
 
   await db
     .update(payments)

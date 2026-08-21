@@ -17,7 +17,7 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "rank.fish — pay to appear",
   description:
-    "A hybrid pay-to-appear board. Rank on the leaderboard. Float bigger badges with higher bids.",
+    "Pay to appear on the field. Boost any link, leave a message, climb the rank.",
   metadataBase: process.env.NEXT_PUBLIC_APP_URL
     ? new URL(process.env.NEXT_PUBLIC_APP_URL)
     : undefined,
@@ -32,9 +32,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${outfit.variable} ${syne.variable} min-h-screen bg-[#05080c] font-sans text-white antialiased`}
+        className={`${outfit.variable} ${syne.variable} min-h-screen bg-[#f7f6f3] font-sans text-neutral-900 antialiased`}
       >
         <TooltipProvider>{children}</TooltipProvider>
       </body>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,40 +13,66 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { dollarsToCents, formatUsd } from "@/lib/bid-scale";
-import { MIN_BID_CENTS } from "@/lib/validations";
+import { LevelSlider } from "@/components/level-slider";
+import { formatUsd } from "@/lib/bid-scale";
+import {
+  CLICKS_PER_SLOT,
+  levelToCents,
+  type EconomySnapshot,
+  buildEconomy,
+} from "@/lib/pricing";
 
 type CreateListingDialogProps = {
-  /** Optional custom open button. If omitted, a default button is shown. */
   triggerClassName?: string;
   triggerLabel?: string;
   triggerSize?: "default" | "sm" | "lg";
+  /** Optional preloaded economy from the server */
+  economy?: EconomySnapshot;
 };
 
 export function CreateListingDialog({
   triggerClassName,
-  triggerLabel = "Add listing",
+  triggerLabel = "Add link",
   triggerSize = "default",
+  economy: economyProp,
 }: CreateListingDialogProps) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [bidDollars, setBidDollars] = useState("5.00");
+  const [level, setLevel] = useState(10);
+  const [economy, setEconomy] = useState<EconomySnapshot>(
+    economyProp ?? buildEconomy(0, 0)
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (economyProp) setEconomy(economyProp);
+  }, [economyProp]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/api/economy")
+      .then((r) => r.json())
+      .then((data: EconomySnapshot) => {
+        if (!cancelled) setEconomy(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const priceCents = useMemo(
+    () =>
+      levelToCents(level, economy.createMinCents, economy.createMaxCents),
+    [level, economy.createMinCents, economy.createMaxCents]
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    const bid = dollarsToCents(bidDollars);
-    if (bid < MIN_BID_CENTS) {
-      setError(`Minimum bid is ${formatUsd(MIN_BID_CENTS)}`);
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -56,8 +82,7 @@ export function CreateListingDialog({
           type: "create",
           url: url.trim(),
           title: title.trim(),
-          description: description.trim(),
-          bid,
+          level,
         }),
       });
 
@@ -66,7 +91,6 @@ export function CreateListingDialog({
         throw new Error(data.error || "Could not start payment");
       }
 
-      // Send the user to Polar hosted checkout
       window.location.href = data.checkoutUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -81,7 +105,7 @@ export function CreateListingDialog({
         size={triggerSize}
         className={
           triggerClassName ??
-          "bg-teal-300 text-[#041016] hover:bg-teal-200"
+          "bg-neutral-900 text-white hover:bg-neutral-800"
         }
         onClick={() => setOpen(true)}
       >
@@ -89,21 +113,21 @@ export function CreateListingDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="border-white/10 bg-[#0b1218] text-white sm:max-w-md">
+        <DialogContent className="border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
           <form onSubmit={onSubmit}>
             <DialogHeader>
               <DialogTitle className="font-[family-name:var(--font-display)] text-xl">
-                Cast a new badge
+                Add a link
               </DialogTitle>
-              <DialogDescription className="text-white/50">
-                Pay once to appear on the board. Higher bids float larger and
-                more solid.
+              <DialogDescription className="text-neutral-500">
+                Title + URL only. Favicon is picked up automatically when one
+                exists. Higher level = bigger presence on the field.
               </DialogDescription>
             </DialogHeader>
 
             <div className="mt-4 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="url">URL</Label>
+                <Label htmlFor="url">Link</Label>
                 <Input
                   id="url"
                   type="url"
@@ -111,7 +135,7 @@ export function CreateListingDialog({
                   placeholder="https://example.com"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  className="border-white/10 bg-white/5"
+                  className="border-neutral-200 bg-neutral-50"
                 />
               </div>
               <div className="space-y-2">
@@ -123,49 +147,56 @@ export function CreateListingDialog({
                   placeholder="My project"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="border-white/10 bg-white/5"
+                  className="border-neutral-200 bg-neutral-50"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Short description</Label>
-                <Textarea
-                  id="description"
-                  maxLength={280}
-                  placeholder="One line about what this is"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-20 border-white/10 bg-white/5"
+
+              <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-neutral-400">
+                      Level
+                    </p>
+                    <p className="font-[family-name:var(--font-display)] text-2xl tabular-nums">
+                      Lv {level}
+                    </p>
+                  </div>
+                  <p className="font-mono text-lg tabular-nums text-neutral-800">
+                    {formatUsd(priceCents)}
+                  </p>
+                </div>
+                <LevelSlider
+                  id="create-level"
+                  value={level}
+                  onChange={setLevel}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bid">Bid (USD)</Label>
-                <Input
-                  id="bid"
-                  type="number"
-                  required
-                  min={1}
-                  step="0.01"
-                  value={bidDollars}
-                  onChange={(e) => setBidDollars(e.target.value)}
-                  className="border-white/10 bg-white/5 font-mono"
-                />
-                <p className="text-xs text-white/40">
-                  You pay this amount now. Minimum {formatUsd(MIN_BID_CENTS)}.
+                <div className="flex justify-between text-[11px] text-neutral-400">
+                  <span>
+                    Lv 1 · {formatUsd(economy.createMinCents)}
+                  </span>
+                  <span>
+                    Lv 100 · {formatUsd(economy.createMaxCents)}
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-neutral-500">
+                  Tier {economy.createTier}: range scales every 10 links (and
+                  every {CLICKS_PER_SLOT} clicks). You — or anyone — can boost
+                  later and only pay the difference.
                 </p>
               </div>
 
               {error && (
-                <p className="rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
                 </p>
               )}
             </div>
 
-            <DialogFooter className="mt-6 border-white/8 bg-transparent">
+            <DialogFooter className="mt-6 border-0 bg-transparent">
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-teal-300 text-[#041016] hover:bg-teal-200 sm:w-auto"
+                className="w-full bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
               >
                 {loading ? (
                   <>
@@ -173,7 +204,7 @@ export function CreateListingDialog({
                     Redirecting…
                   </>
                 ) : (
-                  `Pay ${formatUsd(dollarsToCents(bidDollars) || 0)} & appear`
+                  `Pay ${formatUsd(priceCents)} & appear`
                 )}
               </Button>
             </DialogFooter>

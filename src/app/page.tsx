@@ -2,6 +2,7 @@ import { desc } from "drizzle-orm";
 import { HomePage } from "@/components/home-page";
 import { db } from "@/db";
 import { listings } from "@/db/schema";
+import { getEconomySnapshot } from "@/lib/economy";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,15 @@ async function getListings() {
       .from(listings)
       .orderBy(desc(listings.bid), desc(listings.updatedAt));
   } catch (error) {
-    // During first deploy (before tables exist / env missing), show empty board
     console.error("[home] failed to load listings", error);
     return [];
   }
 }
 
 export default async function Page() {
-  const rows = await getListings();
-  return <HomePage listings={rows} />;
+  const [rows, economy] = await Promise.all([
+    getListings(),
+    getEconomySnapshot(),
+  ]);
+  return <HomePage listings={rows} economy={economy} />;
 }

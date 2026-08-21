@@ -12,10 +12,6 @@ type SuccessPageProps = {
   searchParams: Promise<{ checkout_id?: string }>;
 };
 
-/**
- * After Polar checkout, users land here.
- * We double-check payment status and fulfill if the webhook is slightly late.
- */
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const { checkout_id: checkoutId } = await searchParams;
 
@@ -24,7 +20,6 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
   if (checkoutId) {
     try {
-      // Ask Polar if this checkout actually succeeded
       const polar = getPolarClient();
       const checkout = await polar.checkouts.get({ id: checkoutId });
 
@@ -33,7 +28,6 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         status = "success";
         title = "You're on the board";
       } else {
-        // Webhook may still arrive — check our local payment row
         const [payment] = await db
           .select()
           .from(payments)
@@ -56,31 +50,39 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   }
 
   return (
-    <div className="dark flex min-h-screen flex-col items-center justify-center bg-[#05080c] px-4 text-white">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1218] p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-teal-400/10">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f6f3] px-4 text-neutral-900">
+      <div className="w-full max-w-md border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-neutral-100">
           {status === "success" ? (
-            <CheckCircle2 className="size-6 text-teal-300" />
+            <CheckCircle2 className="size-6 text-neutral-800" />
           ) : (
-            <Clock3 className="size-6 text-teal-300/80" />
+            <Clock3 className="size-6 text-neutral-500" />
           )}
         </div>
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-tight">
           {title}
         </h1>
-        <p className="mt-2 text-sm text-white/50">
+        <p className="mt-2 text-sm text-neutral-500">
           {status === "success"
-            ? "Your bid is live. Size and opacity update with your amount."
+            ? "Your support is live. Check the field for drift size, or Rank for messages."
             : status === "pending"
-              ? "Polar is confirming your payment. Refresh the home page in a few seconds."
+              ? "Polar is confirming your payment. Refresh the field in a few seconds."
               : "No checkout was found. Head home and try again."}
         </p>
-        <Link
-          href="/"
-          className="mt-6 inline-flex h-9 items-center justify-center rounded-lg bg-teal-300 px-4 text-sm font-medium text-[#041016] transition hover:bg-teal-200"
-        >
-          Back to rank.fish
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white transition hover:bg-neutral-800"
+          >
+            Field
+          </Link>
+          <Link
+            href="/rank"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-200 px-4 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+          >
+            Rank
+          </Link>
+        </div>
       </div>
     </div>
   );

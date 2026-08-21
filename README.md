@@ -1,13 +1,31 @@
 # rank.fish
 
-A hybrid **pay-to-appear** website.
+A hybrid **pay-to-appear** website with two pages:
 
-- **Top:** ranked leaderboard (highest bid wins the top spots)
-- **Main area:** floating badges — higher bids look bigger and more solid
+- **Field (`/`):** full-viewport canvas — badges drift left → right; higher level = bigger, denser, slower
+- **Rank (`/rank`):** vertical leaderboard — boost any link, leave a message + optional X handle
 - **Payments:** Polar.sh (Merchant of Record)
 - **Database:** Neon Postgres + Drizzle ORM
 
 You do **not** need to know how to code. Follow the steps below.
+
+---
+
+## How pricing works (levels)
+
+Bids use a **Lv 1–100 slider**. The dollar range scales with board activity:
+
+| Effective links | Range (Lv 1 → Lv 100) |
+|---|---|
+| 1–10 | $1 – $100 |
+| 11–20 | $2 – $200 |
+| 21–30 | $3 – $300 |
+| … | tier × $1 – tier × $100 |
+
+**Effective links** = real listings + `floor(total clicks / 100)`.  
+Traffic raises the rate: early adopters get the cheap band; more clicks → higher tiers.
+
+Anyone can **boost anytime** and only pays the **difference** above the current bid.
 
 ---
 
@@ -54,7 +72,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### 1) Create the database tables
 
-In the Neon SQL Editor, paste and run the SQL from `drizzle/0000_init.sql`.
+In the Neon SQL Editor, paste and run the SQL from `drizzle/0000_init.sql`, then `drizzle/0001_boost_messages.sql`.
 
 Or from your computer (after adding `DATABASE_URL` to `.env.local`):
 
@@ -102,14 +120,12 @@ Without this webhook, payments can succeed but listings may not appear until the
 
 ## How the payment flow works (plain English)
 
-1. Someone clicks **Add listing** or **Boost**
-2. The app calculates how much they owe
-   - New listing → full bid amount
-   - Boost → only the **difference** above the current bid
+1. Someone clicks **Add link** or **Boost**
+2. They pick a **level** on the slider (server maps level → dollars from the current tier)
 3. Polar opens a checkout page
 4. After payment, Polar calls our webhook
-5. We create the listing (or raise the bid) in the database
-6. The homepage refreshes and shows the new rank / bigger badge
+5. We create the listing (or raise the bid) and crawl a favicon when possible
+6. The field / rank pages refresh
 
 ---
 
@@ -147,15 +163,17 @@ https://YOUR_TUNNEL_URL/api/webhooks/polar
 ## Project structure (high level)
 
 - `src/app` — pages and API routes
-- `src/components` — leaderboard, floating badges, dialogs
+- `src/components` — field, rank, dialogs
 - `src/db` — database schema + connection
-- `src/lib` — Polar helpers, bid size math, validation
-- `drizzle/` — SQL migration file you can paste into Neon
+- `src/lib` — Polar, pricing levels, favicon crawl, validation
+- `drizzle/` — SQL migration files you can paste into Neon
 
 ---
 
 ## Notes
 
 - Bids are stored in **USD cents** (example: `$12.50` → `1250`)
-- Clicking a badge / leaderboard link goes through `/api/click` so clicks are counted
-- The badge field scales **size** and **opacity** from the bid amount (log scale)
+- Clicking a badge / rank link goes through `/api/click` so clicks are counted (and feed the price tier)
+- The field scales **size**, **opacity**, and **drift speed** from the bid (log scale)
+- Badges show a favicon only when one was found — no placeholder circle
+- Boosts can include an optional message + X handle, shown under the listing on `/rank`
