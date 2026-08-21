@@ -17,7 +17,7 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "rank.fish — pay to appear",
   description:
-    "A hybrid pay-to-appear board. Rank on the leaderboard. Float bigger badges with higher bids.",
+    "Pay to appear on the field. Boost any link, leave a message, climb the rank.",
   metadataBase: process.env.NEXT_PUBLIC_APP_URL
     ? new URL(process.env.NEXT_PUBLIC_APP_URL)
     : undefined,

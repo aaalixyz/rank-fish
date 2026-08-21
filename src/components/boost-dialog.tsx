@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   centsToDollarInput,
   dollarsToCents,
@@ -28,14 +29,17 @@ type BoostDialogProps = {
 
 export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
   const [bidDollars, setBidDollars] = useState("");
+  const [message, setMessage] = useState("Great work!");
+  const [xHandle, setXHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (listing) {
-      // Suggest a small bump above the current bid
       const suggested = listing.bid + 100;
       setBidDollars(centsToDollarInput(suggested));
+      setMessage("Great work!");
+      setXHandle("");
       setError(null);
       setLoading(false);
     }
@@ -68,6 +72,8 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
           type: "boost",
           listingId: listing.id,
           bid,
+          message: message.trim(),
+          xHandle: xHandle.trim(),
         }),
       });
 
@@ -89,13 +95,13 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
         <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle className="font-[family-name:var(--font-display)] text-xl">
-              Boost listing
+              Boost & support
             </DialogTitle>
             <DialogDescription className="text-white/50">
               {listing ? (
                 <>
-                  Raising <span className="text-white/80">{listing.title}</span>.
-                  You only pay the difference.
+                  Raise <span className="text-white/80">{listing.title}</span>.
+                  Leave a note for the creator — optionally your X handle.
                 </>
               ) : (
                 "Pick a listing to boost."
@@ -132,6 +138,41 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
                   onChange={(e) => setBidDollars(e.target.value)}
                   className="border-white/10 bg-white/5 font-mono"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="boost-message">Message</Label>
+                <Textarea
+                  id="boost-message"
+                  maxLength={160}
+                  placeholder="Great work!"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="min-h-20 border-white/10 bg-white/5"
+                />
+                <p className="text-xs text-white/35">
+                  Shown on the rank page under this link. Optional.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="boost-x">X handle (optional)</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35">
+                    @
+                  </span>
+                  <Input
+                    id="boost-x"
+                    maxLength={40}
+                    placeholder="creator"
+                    value={xHandle}
+                    onChange={(e) => setXHandle(e.target.value)}
+                    className="border-white/10 bg-white/5 pl-7"
+                  />
+                </div>
+                <p className="text-xs text-white/35">
+                  So the creator can find and thank you.
+                </p>
               </div>
 
               {error && (

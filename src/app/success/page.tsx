@@ -70,17 +70,25 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         </h1>
         <p className="mt-2 text-sm text-white/50">
           {status === "success"
-            ? "Your bid is live. Size and opacity update with your amount."
+            ? "Your support is live. Check the field for drift size, or Rank for messages."
             : status === "pending"
-              ? "Polar is confirming your payment. Refresh the home page in a few seconds."
+              ? "Polar is confirming your payment. Refresh the field in a few seconds."
               : "No checkout was found. Head home and try again."}
         </p>
-        <Link
-          href="/"
-          className="mt-6 inline-flex h-9 items-center justify-center rounded-lg bg-teal-300 px-4 text-sm font-medium text-[#041016] transition hover:bg-teal-200"
-        >
-          Back to rank.fish
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-teal-300 px-4 text-sm font-medium text-[#041016] transition hover:bg-teal-200"
+          >
+            Field
+          </Link>
+          <Link
+            href="/rank"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-white/15 px-4 text-sm font-medium text-white/80 transition hover:bg-white/5"
+          >
+            Rank
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -1,23 +1,27 @@
 /**
- * Helpers for turning a bid amount into visual size + opacity.
+ * Helpers for turning a bid amount into visual size + opacity + drift speed.
  *
- * Bigger bids → bigger, more solid badges.
+ * Bigger support → bigger, more solid, slower (more presence on the field).
  * Uses a log scale so one huge bid does not crush everyone else.
  */
 
 export type BidVisual = {
-  /** Pixel diameter for the floating badge */
+  /** Pixel width for the drifting badge */
   size: number;
   /** 0–1 opacity */
   opacity: number;
   /** 0–1 normalized rank used for z-index / animation intensity */
   strength: number;
+  /** Seconds for one full left→right loop */
+  duration: number;
 };
 
-const MIN_SIZE = 56;
-const MAX_SIZE = 168;
-const MIN_OPACITY = 0.32;
+const MIN_SIZE = 72;
+const MAX_SIZE = 220;
+const MIN_OPACITY = 0.22;
 const MAX_OPACITY = 1;
+const MIN_DURATION = 18;
+const MAX_DURATION = 48;
 
 export function getBidVisual(
   bid: number,
@@ -33,12 +37,16 @@ export function getBidVisual(
   const logBid = Math.log(safeBid);
 
   const strength =
-    logMax === logMin ? 1 : Math.min(1, Math.max(0, (logBid - logMin) / (logMax - logMin)));
+    logMax === logMin
+      ? 1
+      : Math.min(1, Math.max(0, (logBid - logMin) / (logMax - logMin)));
 
   return {
     size: Math.round(MIN_SIZE + strength * (MAX_SIZE - MIN_SIZE)),
     opacity: MIN_OPACITY + strength * (MAX_OPACITY - MIN_OPACITY),
     strength,
+    // Higher bids drift slower — they linger
+    duration: MAX_DURATION - strength * (MAX_DURATION - MIN_DURATION),
   };
 }
 

@@ -1,8 +1,9 @@
 /**
  * Database tables for rank.fish
  *
- * listings  → every paid badge on the site (ranked by bid)
- * payments  → tracks Polar checkouts so webhooks can finish the job safely
+ * listings       → every paid badge on the site (ranked by bid)
+ * payments       → tracks Polar checkouts so webhooks can finish the job safely
+ * boost_messages → optional notes + X handles left when someone boosts
  */
 import {
   integer,
@@ -44,6 +45,10 @@ export const payments = pgTable("payments", {
   targetBid: integer("target_bid").notNull(),
   // How much the user is paying right now (full amount or just the difference)
   amountPaid: integer("amount_paid").notNull(),
+  // Optional support note left with a boost
+  message: varchar("message", { length: 160 }).notNull().default(""),
+  // Optional X / Twitter handle (without @)
+  xHandle: varchar("x_handle", { length: 40 }).notNull().default(""),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -53,6 +58,21 @@ export const payments = pgTable("payments", {
     .defaultNow(),
 });
 
+export const boostMessages = pgTable("boost_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  listingId: uuid("listing_id")
+    .notNull()
+    .references(() => listings.id),
+  paymentId: uuid("payment_id").references(() => payments.id),
+  message: varchar("message", { length: 160 }).notNull(),
+  xHandle: varchar("x_handle", { length: 40 }).notNull().default(""),
+  amountPaid: integer("amount_paid").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type Listing = typeof listings.$inferSelect;
 export type NewListing = typeof listings.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
+export type BoostMessage = typeof boostMessages.$inferSelect;

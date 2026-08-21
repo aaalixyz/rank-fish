@@ -4,7 +4,7 @@
  */
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { listings, payments } from "@/db/schema";
+import { boostMessages, listings, payments } from "@/db/schema";
 
 export async function fulfillPaymentByCheckoutId(checkoutId: string) {
   const [payment] = await db
@@ -73,6 +73,17 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
       updatedAt: new Date(),
     })
     .where(eq(listings.id, payment.listingId));
+
+  const note = payment.message?.trim() ?? "";
+  if (note.length > 0) {
+    await db.insert(boostMessages).values({
+      listingId: payment.listingId,
+      paymentId: payment.id,
+      message: note,
+      xHandle: payment.xHandle ?? "",
+      amountPaid: payment.amountPaid,
+    });
+  }
 
   await db
     .update(payments)

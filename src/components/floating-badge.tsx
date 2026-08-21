@@ -9,109 +9,92 @@ type FloatingBadgeProps = {
   listing: Listing;
   minBid: number;
   maxBid: number;
-  /** Deterministic layout position 0–1 */
-  x: number;
+  /** Vertical lane 0–1 (top → bottom of field) */
   y: number;
-  /** Used to stagger float animation */
+  /** Used to stagger start offset and vary speed slightly */
   index: number;
-  onBoost: (listing: Listing) => void;
 };
 
-function initials(title: string) {
-  const parts = title.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+/**
+ * Deterministic pseudo-random in [0,1) so SSR and client match.
+ */
+function hashUnit(n: number) {
+  const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
 }
 
 export function FloatingBadge({
   listing,
   minBid,
   maxBid,
-  x,
   y,
   index,
-  onBoost,
 }: FloatingBadgeProps) {
   const visual = getBidVisual(listing.bid, minBid, maxBid);
-  const duration = 5.5 + (index % 5) * 0.7;
-  const drift = 8 + visual.strength * 10;
+  const phase = hashUnit(index + 1);
+  const speedJitter = 0.85 + hashUnit(index + 17) * 0.35;
+  const duration = visual.duration * speedJitter;
+  // Start somewhere along the loop so badges don't all enter together
+  const delay = -(phase * duration);
 
   return (
-    <motion.div
-      className="group absolute"
+    <motion.a
+      href={`/api/click?id=${listing.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group absolute left-0 will-change-transform"
       style={{
-        left: `${x * 100}%`,
         top: `${y * 100}%`,
         width: visual.size,
-        height: visual.size,
-        marginLeft: -visual.size / 2,
-        marginTop: -visual.size / 2,
+        marginTop: -visual.size * 0.35,
         zIndex: Math.round(10 + visual.strength * 40),
-      }}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{
         opacity: visual.opacity,
-        scale: 1,
-        y: [0, -drift, 0, drift * 0.6, 0],
-        x: [0, drift * 0.35, 0, -drift * 0.25, 0],
       }}
+      initial={false}
+      animate={{ x: ["-15vw", "115vw"] }}
       transition={{
-        opacity: { duration: 0.6, delay: index * 0.04 },
-        scale: { type: "spring", stiffness: 180, damping: 18, delay: index * 0.04 },
-        y: { duration, repeat: Infinity, ease: "easeInOut", delay: index * 0.15 },
         x: {
-          duration: duration * 1.15,
+          duration,
           repeat: Infinity,
-          ease: "easeInOut",
-          delay: index * 0.2,
+          ease: "linear",
+          delay,
         },
       }}
-      whileHover={{ scale: 1.08, opacity: Math.min(1, visual.opacity + 0.15) }}
+      title={`${listing.title} — ${formatUsd(listing.bid)}`}
     >
-      <a
-        href={`/api/click?id=${listing.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative flex size-full flex-col items-center justify-center rounded-full border border-teal-300/25 bg-[radial-gradient(circle_at_30%_25%,rgba(94,234,212,0.35),rgba(8,20,28,0.85)_55%,rgba(4,10,14,0.95))] text-center shadow-[0_0_0_1px_rgba(45,212,191,0.08),0_12px_40px_rgba(0,0,0,0.45)] outline-none transition focus-visible:ring-2 focus-visible:ring-teal-300/60"
-        title={`${listing.title} — ${formatUsd(listing.bid)}`}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onBoost(listing);
-        }}
+      <span
+        className={cn(
+          "inline-flex max-w-full items-baseline gap-2 truncate border-b border-teal-300/20 pb-0.5 text-left transition group-hover:border-teal-300/55",
+          visual.strength > 0.65
+            ? "text-teal-50"
+            : visual.strength > 0.35
+              ? "text-white/80"
+              : "text-white/55"
+        )}
       >
         <span
           className={cn(
-            "font-[family-name:var(--font-display)] font-semibold tracking-tight text-teal-50",
-            visual.size < 80 ? "text-sm" : visual.size < 120 ? "text-base" : "text-lg"
+            "font-[family-name:var(--font-display)] font-semibold tracking-tight",
+            visual.size < 100
+              ? "text-sm"
+              : visual.size < 150
+                ? "text-lg"
+                : visual.size < 190
+                  ? "text-2xl"
+                  : "text-3xl"
           )}
         >
-          {initials(listing.title)}
+          {listing.title}
         </span>
         <span
           className={cn(
-            "mt-0.5 max-w-[85%] truncate px-1 font-mono text-teal-100/80",
-            visual.size < 90 ? "text-[9px]" : "text-[10px]"
+            "shrink-0 font-mono tabular-nums text-teal-200/70",
+            visual.size < 110 ? "text-[9px]" : "text-[11px]"
           )}
         >
           {formatUsd(listing.bid)}
         </span>
-
-        {/* Soft inner glow that grows with bid strength */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-full"
-          style={{
-            boxShadow: `inset 0 0 ${20 + visual.strength * 40}px rgba(45,212,191,${0.08 + visual.strength * 0.18})`,
-          }}
-        />
-      </a>
-
-      <button
-        type="button"
-        onClick={() => onBoost(listing)}
-        className="absolute -bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/10 bg-[#0c141c]/95 px-2 py-0.5 text-[10px] text-teal-100/80 opacity-0 backdrop-blur transition group-hover:opacity-100 hover:bg-teal-400/15 hover:text-teal-50 focus:opacity-100"
-      >
-        Boost
-      </button>
-    </motion.div>
+      </span>
+    </motion.a>
   );
 }

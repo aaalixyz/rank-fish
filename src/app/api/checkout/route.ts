@@ -122,6 +122,8 @@ export async function POST(request: Request) {
         description: listing.description,
         targetBid: data.bid,
         amountPaid,
+        message: data.message ?? "",
+        xHandle: data.xHandle ?? "",
         status: "pending",
       })
       .returning();

@@ -1,9 +1,9 @@
 # rank.fish
 
-A hybrid **pay-to-appear** website.
+A hybrid **pay-to-appear** website with two pages:
 
-- **Top:** ranked leaderboard (highest bid wins the top spots)
-- **Main area:** floating badges — higher bids look bigger and more solid
+- **Field (`/`):** full-viewport canvas — badges drift left → right; higher support = bigger, denser, slower
+- **Rank (`/rank`):** vertical leaderboard — boost any link, leave a message + optional X handle
 - **Payments:** Polar.sh (Merchant of Record)
 - **Database:** Neon Postgres + Drizzle ORM
 
@@ -54,7 +54,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### 1) Create the database tables
 
-In the Neon SQL Editor, paste and run the SQL from `drizzle/0000_init.sql`.
+In the Neon SQL Editor, paste and run the SQL from `drizzle/0000_init.sql`, then `drizzle/0001_boost_messages.sql`.
 
 Or from your computer (after adding `DATABASE_URL` to `.env.local`):
 
@@ -157,5 +157,6 @@ https://YOUR_TUNNEL_URL/api/webhooks/polar
 ## Notes
 
 - Bids are stored in **USD cents** (example: `$12.50` → `1250`)
-- Clicking a badge / leaderboard link goes through `/api/click` so clicks are counted
-- The badge field scales **size** and **opacity** from the bid amount (log scale)
+- Clicking a badge / rank link goes through `/api/click` so clicks are counted
+- The field scales **size**, **opacity**, and **drift speed** from the bid (log scale)
+- Boosts can include an optional message + X handle, shown under the listing on `/rank`

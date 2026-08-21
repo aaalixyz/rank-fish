@@ -96,8 +96,8 @@ export function CreateListingDialog({
                 Cast a new badge
               </DialogTitle>
               <DialogDescription className="text-white/50">
-                Pay once to appear on the board. Higher bids float larger and
-                more solid.
+                Pay once to appear on the field. Higher support = bigger, denser,
+                slower drift.
               </DialogDescription>
             </DialogHeader>
 
