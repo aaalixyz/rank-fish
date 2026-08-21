@@ -1,10 +1,22 @@
--- Add optional boost message + X handle, and a messages table for the rank page
+-- Boost messages, favicon, level columns
 
 ALTER TABLE "payments"
   ADD COLUMN IF NOT EXISTS "message" varchar(160) DEFAULT '' NOT NULL;
 
 ALTER TABLE "payments"
   ADD COLUMN IF NOT EXISTS "x_handle" varchar(40) DEFAULT '' NOT NULL;
+
+ALTER TABLE "payments"
+  ADD COLUMN IF NOT EXISTS "favicon_url" text DEFAULT '' NOT NULL;
+
+ALTER TABLE "payments"
+  ADD COLUMN IF NOT EXISTS "level" integer DEFAULT 1 NOT NULL;
+
+ALTER TABLE "listings"
+  ADD COLUMN IF NOT EXISTS "favicon_url" text DEFAULT '' NOT NULL;
+
+ALTER TABLE "listings"
+  ADD COLUMN IF NOT EXISTS "level" integer DEFAULT 1 NOT NULL;
 
 CREATE TABLE IF NOT EXISTS "boost_messages" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

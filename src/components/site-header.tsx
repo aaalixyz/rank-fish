@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CreateListingDialog } from "@/components/create-listing-dialog";
+import type { EconomySnapshot } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -11,7 +12,11 @@ const NAV = [
   { href: "/rank", label: "Rank" },
 ] as const;
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  economy?: EconomySnapshot;
+};
+
+export function SiteHeader({ economy }: SiteHeaderProps) {
   const pathname = usePathname();
 
   return (
@@ -25,9 +30,9 @@ export function SiteHeader() {
         >
           <Link
             href="/"
-            className="font-[family-name:var(--font-display)] text-xl tracking-tight text-white sm:text-2xl"
+            className="font-[family-name:var(--font-display)] text-xl tracking-tight text-neutral-900 sm:text-2xl"
           >
-            rank<span className="text-teal-300">.fish</span>
+            rank<span className="text-neutral-400">.fish</span>
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-2">
@@ -43,8 +48,8 @@ export function SiteHeader() {
                   className={cn(
                     "px-2 py-1 text-xs tracking-[0.14em] uppercase transition sm:text-[11px]",
                     active
-                      ? "text-white"
-                      : "text-white/40 hover:text-white/75"
+                      ? "text-neutral-900"
+                      : "text-neutral-400 hover:text-neutral-700"
                   )}
                 >
                   {item.label}
@@ -60,9 +65,9 @@ export function SiteHeader() {
           transition={{ duration: 0.45, delay: 0.08 }}
         >
           <CreateListingDialog
+            economy={economy}
             triggerLabel="Add link"
             triggerSize="sm"
-            triggerClassName="bg-teal-300/95 px-3 text-[#041016] hover:bg-teal-200"
           />
         </motion.div>
       </div>

@@ -18,7 +18,7 @@ export type BidVisual = {
 
 const MIN_SIZE = 72;
 const MAX_SIZE = 220;
-const MIN_OPACITY = 0.22;
+const MIN_OPACITY = 0.28;
 const MAX_OPACITY = 1;
 const MIN_DURATION = 18;
 const MAX_DURATION = 48;
@@ -45,7 +45,6 @@ export function getBidVisual(
     size: Math.round(MIN_SIZE + strength * (MAX_SIZE - MIN_SIZE)),
     opacity: MIN_OPACITY + strength * (MAX_OPACITY - MIN_OPACITY),
     strength,
-    // Higher bids drift slower — they linger
     duration: MAX_DURATION - strength * (MAX_DURATION - MIN_DURATION),
   };
 }

@@ -4,11 +4,19 @@
  * Starts a Polar payment for either:
  *  - creating a new listing, or
  *  - boosting an existing one (user only pays the difference)
+ *
+ * Bid amounts come from the gamified level slider (server re-prices from economy).
  */
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { listings, payments } from "@/db/schema";
+import { getEconomySnapshot } from "@/lib/economy";
+import { resolveFavicon } from "@/lib/favicon";
+import {
+  levelToCents,
+  minBoostLevel,
+} from "@/lib/pricing";
 import { createPolarCheckout } from "@/lib/polar";
 import { checkoutRequestSchema } from "@/lib/validations";
 
@@ -27,9 +35,9 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
+    const economy = await getEconomySnapshot();
 
     if (data.type === "create") {
-      // Prevent exact-duplicate URLs from stacking silently — boost instead
       const [existing] = await db
         .select()
         .from(listings)
@@ -40,37 +48,43 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "This URL is already on the board. Use Boost to raise its bid.",
+              "This URL is already on the board. Use Boost on Rank to raise it — you only pay the difference.",
             listingId: existing.id,
           },
           { status: 409 }
         );
       }
 
-      const amountPaid = data.bid;
+      const bid = levelToCents(
+        data.level,
+        economy.createMinCents,
+        economy.createMaxCents
+      );
+      const faviconUrl = await resolveFavicon(data.url);
 
       const [payment] = await db
         .insert(payments)
         .values({
-          // Temporary id until Polar returns a checkout id
           polarCheckoutId: `pending_${crypto.randomUUID()}`,
           type: "create",
           url: data.url,
           title: data.title,
-          description: data.description ?? "",
-          targetBid: data.bid,
-          amountPaid,
+          description: "",
+          faviconUrl,
+          level: data.level,
+          targetBid: bid,
+          amountPaid: bid,
           status: "pending",
         })
         .returning();
 
       const checkout = await createPolarCheckout({
-        amountCents: amountPaid,
+        amountCents: bid,
         productNameHint: data.title,
         metadata: {
           paymentId: payment.id,
           type: "create",
-          targetBid: String(data.bid),
+          targetBid: String(bid),
         },
       });
 
@@ -88,7 +102,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Boost flow
+    // Boost
     const [listing] = await db
       .select()
       .from(listings)
@@ -99,17 +113,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    if (data.bid <= listing.bid) {
+    const floorLevel = minBoostLevel(
+      listing.bid,
+      economy.minCents,
+      economy.maxCents
+    );
+    if (data.level < floorLevel) {
       return NextResponse.json(
         {
-          error: `New bid must be higher than the current bid of $${(listing.bid / 100).toFixed(2)}`,
+          error: `Pick a level above the current bid (Lv ${floorLevel}+). You only pay the difference.`,
         },
         { status: 400 }
       );
     }
 
-    // User only pays the difference between current and new bid
-    const amountPaid = data.bid - listing.bid;
+    const bid = levelToCents(data.level, economy.minCents, economy.maxCents);
+    if (bid <= listing.bid) {
+      return NextResponse.json(
+        {
+          error: `New bid must be higher than the current $${(listing.bid / 100).toFixed(2)}. Boost anytime — you only pay the difference.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const amountPaid = bid - listing.bid;
 
     const [payment] = await db
       .insert(payments)
@@ -120,7 +148,9 @@ export async function POST(request: Request) {
         url: listing.url,
         title: listing.title,
         description: listing.description,
-        targetBid: data.bid,
+        faviconUrl: listing.faviconUrl ?? "",
+        level: data.level,
+        targetBid: bid,
         amountPaid,
         message: data.message ?? "",
         xHandle: data.xHandle ?? "",
@@ -135,7 +165,7 @@ export async function POST(request: Request) {
         paymentId: payment.id,
         type: "boost",
         listingId: listing.id,
-        targetBid: String(data.bid),
+        targetBid: String(bid),
       },
     });
 

@@ -7,15 +7,14 @@ import {
   Leaderboard,
   type ListingWithMessages,
 } from "@/components/leaderboard";
+import type { EconomySnapshot } from "@/lib/pricing";
 
 type RankPageProps = {
   listings: ListingWithMessages[];
+  economy: EconomySnapshot;
 };
 
-/**
- * Page 2 — scrollable vertical rank list with boost + support messages.
- */
-export function RankPage({ listings }: RankPageProps) {
+export function RankPage({ listings, economy }: RankPageProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -26,13 +25,13 @@ export function RankPage({ listings }: RankPageProps) {
   }, [router]);
 
   return (
-    <div className="dark relative min-h-screen overflow-x-hidden bg-[#05080c] text-white">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#f7f6f3] text-neutral-900">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_40%_0%,rgba(45,212,191,0.1),transparent_45%),linear-gradient(180deg,#05080c_0%,#081018_40%,#05070a_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_40%_0%,rgba(180,210,220,0.25),transparent_45%),linear-gradient(180deg,#faf9f7_0%,#f3f1ec_100%)]"
       />
-      <SiteHeader />
-      <Leaderboard listings={listings} />
+      <SiteHeader economy={economy} />
+      <Leaderboard listings={listings} economy={economy} />
     </div>
   );
 }

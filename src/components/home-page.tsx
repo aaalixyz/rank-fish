@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import type { Listing } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { BadgeField } from "@/components/badge-field";
+import type { EconomySnapshot } from "@/lib/pricing";
 
 type HomePageProps = {
   listings: Listing[];
+  economy: EconomySnapshot;
 };
 
-/**
- * Page 1 — locked 100vw × 100vh field. No scroll. Badges drift left → right.
- */
-export function HomePage({ listings }: HomePageProps) {
+export function HomePage({ listings, economy }: HomePageProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -23,7 +22,6 @@ export function HomePage({ listings }: HomePageProps) {
     return () => window.clearInterval(id);
   }, [router]);
 
-  // Lock page scroll while on the field
   useEffect(() => {
     const prevHtml = document.documentElement.style.overflow;
     const prevBody = document.body.style.overflow;
@@ -36,8 +34,8 @@ export function HomePage({ listings }: HomePageProps) {
   }, []);
 
   return (
-    <div className="dark relative h-[100dvh] w-screen overflow-hidden bg-[#05080c] text-white">
-      <SiteHeader />
+    <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3] text-neutral-900">
+      <SiteHeader economy={economy} />
       <BadgeField listings={listings} />
     </div>
   );

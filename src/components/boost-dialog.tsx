@@ -15,51 +15,85 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LevelSlider } from "@/components/level-slider";
+import { formatUsd } from "@/lib/bid-scale";
 import {
-  centsToDollarInput,
-  dollarsToCents,
-  formatUsd,
-} from "@/lib/bid-scale";
+  buildEconomy,
+  levelToCents,
+  minBoostLevel,
+  type EconomySnapshot,
+} from "@/lib/pricing";
 
 type BoostDialogProps = {
   listing: Listing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  economy?: EconomySnapshot;
 };
 
-export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
-  const [bidDollars, setBidDollars] = useState("");
+export function BoostDialog({
+  listing,
+  open,
+  onOpenChange,
+  economy: economyProp,
+}: BoostDialogProps) {
+  const [economy, setEconomy] = useState<EconomySnapshot>(
+    economyProp ?? buildEconomy(0, 0)
+  );
+  const [level, setLevel] = useState(10);
   const [message, setMessage] = useState("Great work!");
   const [xHandle, setXHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (economyProp) setEconomy(economyProp);
+  }, [economyProp]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/api/economy")
+      .then((r) => r.json())
+      .then((data: EconomySnapshot) => {
+        if (!cancelled) setEconomy(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const floor = useMemo(() => {
+    if (!listing) return 1;
+    return minBoostLevel(listing.bid, economy.minCents, economy.maxCents);
+  }, [listing, economy.minCents, economy.maxCents]);
+
+  useEffect(() => {
     if (listing) {
-      const suggested = listing.bid + 100;
-      setBidDollars(centsToDollarInput(suggested));
+      setLevel(floor);
       setMessage("Great work!");
       setXHandle("");
       setError(null);
       setLoading(false);
     }
-  }, [listing]);
+  }, [listing, floor]);
 
-  const difference = useMemo(() => {
-    if (!listing) return 0;
-    const next = dollarsToCents(bidDollars);
-    return Math.max(0, next - listing.bid);
-  }, [bidDollars, listing]);
+  const targetBid = useMemo(
+    () => levelToCents(level, economy.minCents, economy.maxCents),
+    [level, economy.minCents, economy.maxCents]
+  );
+
+  const difference = listing ? Math.max(0, targetBid - listing.bid) : 0;
+  const maxedOut = floor >= 100 && listing != null && targetBid <= listing.bid;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!listing) return;
 
     setError(null);
-    const bid = dollarsToCents(bidDollars);
-
-    if (bid <= listing.bid) {
-      setError(`Enter more than the current ${formatUsd(listing.bid)}`);
+    if (targetBid <= listing.bid) {
+      setError(`Pick a higher level than the current ${formatUsd(listing.bid)}`);
       return;
     }
 
@@ -71,7 +105,7 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
         body: JSON.stringify({
           type: "boost",
           listingId: listing.id,
-          bid,
+          level,
           message: message.trim(),
           xHandle: xHandle.trim(),
         }),
@@ -91,17 +125,17 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-[#0b1218] text-white sm:max-w-md">
+      <DialogContent className="border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
         <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle className="font-[family-name:var(--font-display)] text-xl">
               Boost & support
             </DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogDescription className="text-neutral-500">
               {listing ? (
                 <>
-                  Raise <span className="text-white/80">{listing.title}</span>.
-                  Leave a note for the creator — optionally your X handle.
+                  Raise <span className="text-neutral-800">{listing.title}</span>.
+                  You only pay the difference — leave a note for the creator.
                 </>
               ) : (
                 "Pick a listing to boost."
@@ -111,34 +145,55 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
 
           {listing && (
             <div className="mt-4 space-y-4">
-              <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm">
-                <div className="flex justify-between text-white/50">
-                  <span>Current bid</span>
-                  <span className="font-mono text-white/80">
-                    {formatUsd(listing.bid)}
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
+                <div className="flex justify-between text-neutral-500">
+                  <span>Current</span>
+                  <span className="font-mono text-neutral-800">
+                    Lv {listing.level} · {formatUsd(listing.bid)}
                   </span>
                 </div>
-                <div className="mt-2 flex justify-between text-white/50">
+                <div className="mt-2 flex justify-between text-neutral-500">
                   <span>You pay now</span>
-                  <span className="font-mono text-teal-200">
+                  <span className="font-mono text-neutral-900">
                     {formatUsd(difference)}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="boost-bid">New total bid (USD)</Label>
-                <Input
-                  id="boost-bid"
-                  type="number"
-                  required
-                  min={(listing.bid + 1) / 100}
-                  step="0.01"
-                  value={bidDollars}
-                  onChange={(e) => setBidDollars(e.target.value)}
-                  className="border-white/10 bg-white/5 font-mono"
-                />
-              </div>
+              {maxedOut ? (
+                <p className="text-sm text-neutral-500">
+                  This listing is already at the top of the current price band.
+                  As more links and clicks land, the range expands and higher
+                  boosts open up.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-400">
+                        New level
+                      </p>
+                      <p className="font-[family-name:var(--font-display)] text-2xl tabular-nums">
+                        Lv {level}
+                      </p>
+                    </div>
+                    <p className="font-mono text-lg tabular-nums">
+                      {formatUsd(targetBid)}
+                    </p>
+                  </div>
+                  <LevelSlider
+                    id="boost-level"
+                    value={level}
+                    min={floor}
+                    max={100}
+                    onChange={setLevel}
+                  />
+                  <p className="text-xs text-neutral-500">
+                    Tier {economy.tier} band · Lv {floor}–100. Boost anytime —
+                    only the difference is charged.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="boost-message">Message</Label>
@@ -148,35 +203,29 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
                   placeholder="Great work!"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-20 border-white/10 bg-white/5"
+                  className="min-h-20 border-neutral-200 bg-neutral-50"
                 />
-                <p className="text-xs text-white/35">
-                  Shown on the rank page under this link. Optional.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="boost-x">X handle (optional)</Label>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
                     @
                   </span>
                   <Input
                     id="boost-x"
                     maxLength={40}
-                    placeholder="creator"
+                    placeholder="you"
                     value={xHandle}
                     onChange={(e) => setXHandle(e.target.value)}
-                    className="border-white/10 bg-white/5 pl-7"
+                    className="border-neutral-200 bg-neutral-50 pl-7"
                   />
                 </div>
-                <p className="text-xs text-white/35">
-                  So the creator can find and thank you.
-                </p>
               </div>
 
               {error && (
-                <p className="rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
                 </p>
               )}
@@ -186,8 +235,8 @@ export function BoostDialog({ listing, open, onOpenChange }: BoostDialogProps) {
           <DialogFooter className="mt-6">
             <Button
               type="submit"
-              disabled={loading || !listing || difference <= 0}
-              className="w-full bg-teal-300 text-[#041016] hover:bg-teal-200 sm:w-auto"
+              disabled={loading || !listing || difference <= 0 || maxedOut}
+              className="w-full bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
             >
               {loading ? (
                 <>

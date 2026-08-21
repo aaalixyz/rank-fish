@@ -6,6 +6,8 @@ import type { BoostMessage, Listing } from "@/db/schema";
 import { formatUsd } from "@/lib/bid-scale";
 import { Button } from "@/components/ui/button";
 import { BoostDialog } from "@/components/boost-dialog";
+import type { EconomySnapshot } from "@/lib/pricing";
+import { CLICKS_PER_SLOT } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export type ListingWithMessages = Listing & {
@@ -14,13 +16,14 @@ export type ListingWithMessages = Listing & {
 
 type LeaderboardProps = {
   listings: ListingWithMessages[];
+  economy: EconomySnapshot;
 };
 
 function xProfileUrl(handle: string) {
   return `https://x.com/${encodeURIComponent(handle)}`;
 }
 
-export function Leaderboard({ listings }: LeaderboardProps) {
+export function Leaderboard({ listings, economy }: LeaderboardProps) {
   const [boostTarget, setBoostTarget] = useState<Listing | null>(null);
 
   const ranked = useMemo(
@@ -31,26 +34,37 @@ export function Leaderboard({ listings }: LeaderboardProps) {
   return (
     <section className="relative z-10">
       <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-24 sm:px-6">
-        <div className="mb-10">
-          <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-white sm:text-5xl">
+        <div className="mb-8">
+          <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-neutral-900 sm:text-5xl">
             Rank
           </h1>
-          <p className="mt-2 max-w-md text-sm text-white/45 sm:text-base">
-            Highest support sits on top. Boost any link, leave a note, optionally
-            drop your X handle.
+          <p className="mt-2 max-w-lg text-sm text-neutral-500 sm:text-base">
+            Highest support on top. Boost any link, leave a note, drop your X
+            handle. You only pay the difference.
+          </p>
+          <p className="mt-3 text-xs text-neutral-400">
+            Tier {economy.tier} · {formatUsd(economy.minCents)}–
+            {formatUsd(economy.maxCents)} · {economy.listingCount} links ·{" "}
+            {economy.totalClicks} clicks
+            {economy.clickSlots > 0
+              ? ` (+${economy.clickSlots} from traffic)`
+              : ""}
+            . Every {CLICKS_PER_SLOT} clicks nudges the rate up —
+            {economy.clicksToNextSlot} to next slot.
           </p>
         </div>
 
         {ranked.length === 0 ? (
-          <div className="border border-dashed border-white/12 px-5 py-14 text-center text-sm text-white/45">
+          <div className="border border-dashed border-neutral-300 px-5 py-14 text-center text-sm text-neutral-500">
             No listings yet. Add a link from the field, then boost to climb.
           </div>
         ) : (
-          <ol className="divide-y divide-white/8 border-y border-white/8">
+          <ol className="divide-y divide-neutral-200 border-y border-neutral-200">
             {ranked.map((listing, index) => {
               const rank = index + 1;
               const isTop = rank <= 3;
               const recent = listing.messages.slice(0, 3);
+              const showIcon = Boolean(listing.faviconUrl);
 
               return (
                 <li key={listing.id} className="py-5 sm:py-6">
@@ -58,7 +72,7 @@ export function Leaderboard({ listings }: LeaderboardProps) {
                     <span
                       className={cn(
                         "w-8 shrink-0 pt-1 text-center font-mono text-sm tabular-nums",
-                        isTop ? "text-teal-300" : "text-white/30"
+                        isTop ? "text-neutral-900" : "text-neutral-300"
                       )}
                     >
                       {rank}
@@ -70,32 +84,52 @@ export function Leaderboard({ listings }: LeaderboardProps) {
                           href={`/api/click?id=${listing.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group min-w-0 flex-1"
+                          className="group flex min-w-0 flex-1 items-start gap-2.5"
                         >
-                          <div className="flex items-center gap-1.5">
-                            <span className="truncate font-[family-name:var(--font-display)] text-lg text-white/95 group-hover:text-teal-100 sm:text-xl">
-                              {listing.title}
-                            </span>
-                            <ArrowUpRight className="size-3.5 shrink-0 text-white/25 opacity-0 transition group-hover:opacity-100" />
+                          {showIcon ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={listing.faviconUrl}
+                              alt=""
+                              width={20}
+                              height={20}
+                              className="mt-1 size-5 shrink-0 rounded-sm"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : null}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate font-[family-name:var(--font-display)] text-lg text-neutral-900 group-hover:text-neutral-600 sm:text-xl">
+                                {listing.title}
+                              </span>
+                              <ArrowUpRight className="size-3.5 shrink-0 text-neutral-300 opacity-0 transition group-hover:opacity-100" />
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-neutral-400 sm:text-sm">
+                              {listing.url}
+                            </p>
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-white/40 sm:text-sm">
-                            {listing.description || listing.url}
-                          </p>
                         </a>
 
                         <div className="flex shrink-0 items-center gap-3">
-                          <div className="hidden items-center gap-1 text-xs text-white/35 sm:flex">
+                          <div className="hidden items-center gap-1 text-xs text-neutral-400 sm:flex">
                             <MousePointerClick className="size-3.5" />
                             <span className="tabular-nums">{listing.clicks}</span>
                           </div>
-                          <p className="font-mono text-sm tabular-nums text-teal-200/90">
-                            {formatUsd(listing.bid)}
-                          </p>
+                          <div className="text-right">
+                            <p className="font-mono text-sm tabular-nums text-neutral-800">
+                              {formatUsd(listing.bid)}
+                            </p>
+                            <p className="text-[10px] uppercase tracking-wider text-neutral-400">
+                              Lv {listing.level}
+                            </p>
+                          </div>
                           <Button
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-8 shrink-0 px-2 text-teal-200/80 hover:bg-teal-400/10 hover:text-teal-100"
+                            className="h-8 shrink-0 px-2 text-neutral-700 hover:bg-neutral-100"
                             onClick={() => setBoostTarget(listing)}
                           >
                             <Rocket className="size-3.5" />
@@ -105,10 +139,10 @@ export function Leaderboard({ listings }: LeaderboardProps) {
                       </div>
 
                       {recent.length > 0 && (
-                        <ul className="mt-4 space-y-2 border-l border-teal-300/20 pl-3">
+                        <ul className="mt-4 space-y-2 border-l border-neutral-200 pl-3">
                           {recent.map((msg) => (
-                            <li key={msg.id} className="text-sm text-white/55">
-                              <span className="text-white/80">
+                            <li key={msg.id} className="text-sm text-neutral-500">
+                              <span className="text-neutral-700">
                                 “{msg.message}”
                               </span>
                               {msg.xHandle ? (
@@ -118,13 +152,13 @@ export function Leaderboard({ listings }: LeaderboardProps) {
                                     href={xProfileUrl(msg.xHandle)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-teal-300/80 hover:text-teal-200"
+                                    className="text-neutral-800 underline-offset-2 hover:underline"
                                   >
                                     @{msg.xHandle}
                                   </a>
                                 </>
                               ) : null}
-                              <span className="ml-2 font-mono text-[10px] text-white/25">
+                              <span className="ml-2 font-mono text-[10px] text-neutral-300">
                                 +{formatUsd(msg.amountPaid)}
                               </span>
                             </li>
@@ -146,6 +180,7 @@ export function Leaderboard({ listings }: LeaderboardProps) {
         onOpenChange={(open) => {
           if (!open) setBoostTarget(null);
         }}
+        economy={economy}
       />
     </section>
   );

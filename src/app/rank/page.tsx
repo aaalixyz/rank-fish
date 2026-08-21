@@ -3,6 +3,7 @@ import { RankPage } from "@/components/rank-page";
 import { db } from "@/db";
 import { boostMessages, listings } from "@/db/schema";
 import type { ListingWithMessages } from "@/components/leaderboard";
+import { getEconomySnapshot } from "@/lib/economy";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,9 @@ async function getRankedListings(): Promise<ListingWithMessages[]> {
 }
 
 export default async function RankRoute() {
-  const rows = await getRankedListings();
-  return <RankPage listings={rows} />;
+  const [rows, economy] = await Promise.all([
+    getRankedListings(),
+    getEconomySnapshot(),
+  ]);
+  return <RankPage listings={rows} economy={economy} />;
 }

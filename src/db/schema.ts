@@ -20,8 +20,12 @@ export const listings = pgTable("listings", {
   url: text("url").notNull(),
   title: varchar("title", { length: 120 }).notNull(),
   description: varchar("description", { length: 280 }).notNull().default(""),
+  // Resolved favicon URL — empty string means show no icon
+  faviconUrl: text("favicon_url").notNull().default(""),
   // Bid amount stored in USD cents (e.g. $12.50 → 1250)
   bid: integer("bid").notNull().default(0),
+  // Level 1–100 at time of last paid placement / boost
+  level: integer("level").notNull().default(1),
   clicks: integer("clicks").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -41,6 +45,8 @@ export const payments = pgTable("payments", {
   url: text("url").notNull(),
   title: varchar("title", { length: 120 }).notNull(),
   description: varchar("description", { length: 280 }).notNull().default(""),
+  faviconUrl: text("favicon_url").notNull().default(""),
+  level: integer("level").notNull().default(1),
   // Final bid the listing should have after this payment succeeds
   targetBid: integer("target_bid").notNull(),
   // How much the user is paying right now (full amount or just the difference)

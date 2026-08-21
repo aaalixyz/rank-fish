@@ -1,16 +1,5 @@
 import { z } from "zod";
-
-/** Minimum bid for a brand-new listing ($1.00) */
-export const MIN_BID_CENTS = 100;
-
-const urlSchema = z
-  .string()
-  .trim()
-  .url("Enter a valid URL (include https://)")
-  .refine(
-    (value) => value.startsWith("http://") || value.startsWith("https://"),
-    "URL must start with http:// or https://"
-  );
+import { MAX_LEVEL, MIN_LEVEL } from "@/lib/pricing";
 
 /** Strip @ and urls; keep a clean handle or empty */
 export function normalizeXHandle(raw: string): string {
@@ -22,6 +11,15 @@ export function normalizeXHandle(raw: string): string {
     .split(/[/?#]/)[0];
   return fromUrl.slice(0, 40);
 }
+
+const urlSchema = z
+  .string()
+  .trim()
+  .url("Enter a valid URL (include https://)")
+  .refine(
+    (value) => value.startsWith("http://") || value.startsWith("https://"),
+    "URL must start with http:// or https://"
+  );
 
 const xHandleSchema = z
   .string()
@@ -39,6 +37,12 @@ const messageSchema = z
   .max(160, "Message is too long")
   .default("");
 
+const levelSchema = z
+  .number()
+  .int()
+  .min(MIN_LEVEL, `Level must be at least ${MIN_LEVEL}`)
+  .max(MAX_LEVEL, `Level must be at most ${MAX_LEVEL}`);
+
 export const createListingSchema = z.object({
   type: z.literal("create"),
   url: urlSchema,
@@ -47,23 +51,13 @@ export const createListingSchema = z.object({
     .trim()
     .min(2, "Title is too short")
     .max(120, "Title is too long"),
-  description: z
-    .string()
-    .trim()
-    .max(280, "Description is too long")
-    .default(""),
-  // Bid in USD cents
-  bid: z
-    .number()
-    .int()
-    .min(MIN_BID_CENTS, "Minimum bid is $1.00"),
+  level: levelSchema,
 });
 
 export const boostListingSchema = z.object({
   type: z.literal("boost"),
   listingId: z.string().uuid("Invalid listing"),
-  // New total bid in USD cents (must be higher than current)
-  bid: z.number().int().min(MIN_BID_CENTS, "Minimum bid is $1.00"),
+  level: levelSchema,
   message: messageSchema,
   xHandle: xHandleSchema.default(""),
 });

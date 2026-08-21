@@ -32,9 +32,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${outfit.variable} ${syne.variable} min-h-screen bg-[#05080c] font-sans text-white antialiased`}
+        className={`${outfit.variable} ${syne.variable} min-h-screen bg-[#f7f6f3] font-sans text-neutral-900 antialiased`}
       >
         <TooltipProvider>{children}</TooltipProvider>
       </body>
