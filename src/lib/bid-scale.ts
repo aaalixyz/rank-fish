@@ -1,51 +1,34 @@
 /**
- * Helpers for turning a bid amount into visual size + opacity + drift speed.
+ * Helpers for turning a level (1–100) into visual size + drift speed.
  *
- * Bigger support → bigger, more solid, slower (more presence on the field).
- * Uses a log scale so one huge bid does not crush everyone else.
+ * Size is absolute from the level — a lone Lv 25 is mid-field, not maxed out
+ * just because it is the only listing. Bigger / higher level → slower drift.
  */
 
+import { MAX_LEVEL, MIN_LEVEL } from "@/lib/pricing";
+
 export type BidVisual = {
-  /** Pixel width for the drifting badge */
-  size: number;
+  /** 0–1 level strength (Lv 1 → 0, Lv 100 → 1) */
+  strength: number;
   /** 0–1 opacity */
   opacity: number;
-  /** 0–1 normalized rank used for z-index / animation intensity */
-  strength: number;
-  /** Seconds for one full left→right loop */
+  /** Seconds for one full left→right loop (bigger = slower) */
   duration: number;
 };
 
-const MIN_SIZE = 72;
-const MAX_SIZE = 220;
-const MIN_OPACITY = 0.45;
+const MIN_OPACITY = 0.9;
 const MAX_OPACITY = 1;
-const MIN_DURATION = 18;
-const MAX_DURATION = 48;
+const MIN_DURATION = 16;
+const MAX_DURATION = 44;
 
-export function getBidVisual(
-  bid: number,
-  minBid: number,
-  maxBid: number
-): BidVisual {
-  const safeBid = Math.max(bid, 1);
-  const safeMin = Math.max(minBid, 1);
-  const safeMax = Math.max(maxBid, safeMin);
-
-  const logMin = Math.log(safeMin);
-  const logMax = Math.log(safeMax);
-  const logBid = Math.log(safeBid);
-
-  const strength =
-    logMax === logMin
-      ? 1
-      : Math.min(1, Math.max(0, (logBid - logMin) / (logMax - logMin)));
+export function getLevelVisual(level: number): BidVisual {
+  const safe = Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, level));
+  const strength = (safe - MIN_LEVEL) / (MAX_LEVEL - MIN_LEVEL);
 
   return {
-    size: Math.round(MIN_SIZE + strength * (MAX_SIZE - MIN_SIZE)),
-    opacity: MIN_OPACITY + strength * (MAX_OPACITY - MIN_OPACITY),
     strength,
-    duration: MAX_DURATION - strength * (MAX_DURATION - MIN_DURATION),
+    opacity: MIN_OPACITY + strength * (MAX_OPACITY - MIN_OPACITY),
+    duration: MIN_DURATION + strength * (MAX_DURATION - MIN_DURATION),
   };
 }
 

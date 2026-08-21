@@ -26,6 +26,8 @@ export const listings = pgTable("listings", {
   bid: integer("bid").notNull().default(0),
   // Level 1–100 at time of last paid placement / boost
   level: integer("level").notNull().default(1),
+  // Poster pill theme id (see src/lib/pill-themes.ts)
+  theme: varchar("theme", { length: 32 }).notNull().default("paper"),
   clicks: integer("clicks").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -55,6 +57,8 @@ export const payments = pgTable("payments", {
   message: varchar("message", { length: 160 }).notNull().default(""),
   // Optional X / Twitter handle (without @)
   xHandle: varchar("x_handle", { length: 40 }).notNull().default(""),
+  // Pill theme chosen at checkout (create) or updated on boost
+  theme: varchar("theme", { length: 32 }).notNull().default("paper"),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

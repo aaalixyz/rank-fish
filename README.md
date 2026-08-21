@@ -174,6 +174,6 @@ https://YOUR_TUNNEL_URL/api/webhooks/polar
 
 - Bids are stored in **USD cents** (example: `$12.50` → `1250`)
 - Clicking a badge / rank link goes through `/api/click` so clicks are counted (and feed the price tier)
-- The field scales **size**, **opacity**, and **drift speed** from the bid (log scale)
+- The field scales **size** and **drift speed** from the listing **level** (higher level → bigger, slower). Type and icons scale with the viewport on resize. Each listing gets hashed scatter (lane, tilt, weight) and one of eight pill color themes.
 - Badges show a favicon only when one was found — no placeholder circle
 - Boosts can include an optional message + X handle, shown under the listing on `/rank`
