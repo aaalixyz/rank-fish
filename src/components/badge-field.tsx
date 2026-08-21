@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import type { Listing } from "@/db/schema";
 import { FloatingBadge } from "@/components/floating-badge";
 
@@ -8,24 +7,9 @@ type BadgeFieldProps = {
   listings: Listing[];
 };
 
-function laneFor(index: number) {
-  const golden = 0.61803398875;
-  const t = (index * golden) % 1;
-  return 0.14 + t * 0.72;
-}
-
 export function BadgeField({ listings }: BadgeFieldProps) {
-  const { minBid, maxBid } = useMemo(() => {
-    if (listings.length === 0) return { minBid: 100, maxBid: 100 };
-    const bids = listings.map((l) => l.bid);
-    return {
-      minBid: Math.min(...bids),
-      maxBid: Math.max(...bids),
-    };
-  }, [listings]);
-
   return (
-    <section className="relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
+    <section className="badge-field relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(180,210,220,0.35),transparent_45%),radial-gradient(ellipse_at_90%_80%,rgba(220,200,180,0.22),transparent_40%),linear-gradient(180deg,#faf9f7_0%,#f3f1ec_100%)]"
@@ -47,20 +31,13 @@ export function BadgeField({ listings }: BadgeFieldProps) {
         {listings.length === 0 ? (
           <div className="flex h-full items-center justify-center px-6">
             <p className="max-w-sm text-center text-sm text-neutral-400">
-              The field is empty. Add a link — size, weight, and drift speed
-              follow your level.
+              The field is empty. Add a link — size and drift speed follow
+              your level. Pick a pill color when you submit.
             </p>
           </div>
         ) : (
-          listings.map((listing, index) => (
-            <FloatingBadge
-              key={listing.id}
-              listing={listing}
-              minBid={minBid}
-              maxBid={maxBid}
-              y={laneFor(index)}
-              index={index}
-            />
+          listings.map((listing) => (
+            <FloatingBadge key={listing.id} listing={listing} />
           ))
         )}
       </div>

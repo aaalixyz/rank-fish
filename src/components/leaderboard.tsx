@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, MousePointerClick, Rocket } from "lucide-react";
 import type { BoostMessage, Listing } from "@/db/schema";
 import { formatUsd } from "@/lib/bid-scale";
+import { resolvePillTheme } from "@/lib/pill-themes";
 import { Button } from "@/components/ui/button";
 import { BoostDialog } from "@/components/boost-dialog";
 import type { EconomySnapshot } from "@/lib/pricing";
@@ -65,6 +66,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
               const isTop = rank <= 3;
               const recent = listing.messages.slice(0, 3);
               const showIcon = Boolean(listing.faviconUrl);
+              const pill = resolvePillTheme(listing.theme);
 
               return (
                 <li key={listing.id} className="py-5 sm:py-6">
@@ -101,6 +103,14 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                           ) : null}
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
+                              <span
+                                className="size-2.5 shrink-0 rounded-full border"
+                                style={{
+                                  background: pill.bg,
+                                  borderColor: pill.outline,
+                                }}
+                                title={pill.label}
+                              />
                               <span className="truncate font-[family-name:var(--font-display)] text-lg text-neutral-900 group-hover:text-neutral-600 sm:text-xl">
                                 {listing.title}
                               </span>

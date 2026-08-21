@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LevelSlider } from "@/components/level-slider";
-import { formatUsd } from "@/lib/bid-scale";
+import { ThemePicker } from "@/components/theme-picker";
+import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
+import {
+  DEFAULT_PILL_THEME,
+  type PillThemeId,
+  resolvePillTheme,
+} from "@/lib/pill-themes";
 import {
   CLICKS_PER_SLOT,
   levelToCents,
@@ -40,6 +46,7 @@ export function CreateListingDialog({
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState(10);
+  const [theme, setTheme] = useState<PillThemeId>(DEFAULT_PILL_THEME);
   const [economy, setEconomy] = useState<EconomySnapshot>(
     economyProp ?? buildEconomy(0, 0)
   );
@@ -69,6 +76,8 @@ export function CreateListingDialog({
       levelToCents(level, economy.createMinCents, economy.createMaxCents),
     [level, economy.createMinCents, economy.createMaxCents]
   );
+  const previewTheme = resolvePillTheme(theme);
+  const previewStrength = getLevelVisual(level).strength;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,6 +92,7 @@ export function CreateListingDialog({
           url: url.trim(),
           title: title.trim(),
           level,
+          theme,
         }),
       });
 
@@ -113,7 +123,7 @@ export function CreateListingDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
+        <DialogContent className="max-h-[min(92dvh,44rem)] overflow-y-auto border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
           <form onSubmit={onSubmit}>
             <DialogHeader>
               <DialogTitle className="font-[family-name:var(--font-display)] text-xl">
@@ -121,7 +131,7 @@ export function CreateListingDialog({
               </DialogTitle>
               <DialogDescription className="text-neutral-500">
                 Title + URL only. Favicon is picked up automatically when one
-                exists. Higher level = bigger presence on the field.
+                exists. Higher level = bigger, slower pill on the field.
               </DialogDescription>
             </DialogHeader>
 
@@ -149,6 +159,29 @@ export function CreateListingDialog({
                   onChange={(e) => setTitle(e.target.value)}
                   className="border-neutral-200 bg-neutral-50"
                 />
+              </div>
+
+              <ThemePicker value={theme} onChange={setTheme} />
+
+              <div
+                className="flex justify-center rounded-xl border border-neutral-200 bg-[#f7f6f3] px-4 py-5"
+                aria-hidden
+              >
+                <span
+                  className="pill-mark pill-mark--static"
+                  style={
+                    {
+                      "--s": previewStrength,
+                      "--pill-bg": previewTheme.bg,
+                      "--pill-fg": previewTheme.fg,
+                      "--pill-outline": previewTheme.outline,
+                    } as CSSProperties
+                  }
+                >
+                  <span className="pill-mark__title">
+                    {title.trim() || "My project"}
+                  </span>
+                </span>
               </div>
 
               <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3">

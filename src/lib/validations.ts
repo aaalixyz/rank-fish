@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_PILL_THEME, PILL_THEME_IDS } from "@/lib/pill-themes";
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/pricing";
 
 /** Strip @ and urls; keep a clean handle or empty */
@@ -43,6 +44,8 @@ const levelSchema = z
   .min(MIN_LEVEL, `Level must be at least ${MIN_LEVEL}`)
   .max(MAX_LEVEL, `Level must be at most ${MAX_LEVEL}`);
 
+const themeSchema = z.enum(PILL_THEME_IDS).default(DEFAULT_PILL_THEME);
+
 export const createListingSchema = z.object({
   type: z.literal("create"),
   url: urlSchema,
@@ -52,6 +55,7 @@ export const createListingSchema = z.object({
     .min(2, "Title is too short")
     .max(120, "Title is too long"),
   level: levelSchema,
+  theme: themeSchema,
 });
 
 export const boostListingSchema = z.object({
@@ -60,6 +64,7 @@ export const boostListingSchema = z.object({
   level: levelSchema,
   message: messageSchema,
   xHandle: xHandleSchema.default(""),
+  theme: themeSchema,
 });
 
 export const checkoutRequestSchema = z.discriminatedUnion("type", [

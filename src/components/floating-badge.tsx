@@ -1,41 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Listing } from "@/db/schema";
-import { formatUsd, getBidVisual } from "@/lib/bid-scale";
+import { getBadgeLook } from "@/lib/badge-look";
+import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
+import { resolvePillTheme } from "@/lib/pill-themes";
 import { cn } from "@/lib/utils";
 
 type FloatingBadgeProps = {
   listing: Listing;
-  minBid: number;
-  maxBid: number;
-  y: number;
-  index: number;
 };
-
-function hashUnit(n: number) {
-  const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
 
 /**
  * CSS-driven L→R loop. Framer keyframes were painting at translateX(114vw)
  * (off-screen) after hydration — native animation + negative delay is reliable.
  */
-export function FloatingBadge({
-  listing,
-  minBid,
-  maxBid,
-  y,
-  index,
-}: FloatingBadgeProps) {
-  const visual = getBidVisual(listing.bid, minBid, maxBid);
-  const phase = hashUnit(index + 1);
-  const speedJitter = 0.85 + hashUnit(index + 17) * 0.35;
-  const duration = visual.duration * speedJitter;
+export function FloatingBadge({ listing }: FloatingBadgeProps) {
+  const visual = getLevelVisual(listing.level);
+  const look = getBadgeLook(listing.id);
+  const theme = resolvePillTheme(listing.theme);
+  const duration = visual.duration * look.speedJitter;
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(listing.faviconUrl) && !iconFailed;
-  const iconSize = Math.max(14, Math.round(visual.size * 0.14));
 
   return (
     <a
@@ -44,52 +30,45 @@ export function FloatingBadge({
       rel="noopener noreferrer"
       className="badge-drift group absolute left-0 will-change-transform"
       style={{
-        top: `${y * 100}%`,
-        width: visual.size * 1.6,
-        marginTop: -visual.size * 0.2,
+        top: `${look.lane * 100}%`,
         zIndex: Math.round(10 + visual.strength * 40),
-        opacity: visual.opacity,
         animationDuration: `${duration}s`,
-        animationDelay: `-${phase * duration}s`,
+        animationDelay: `-${look.phase * duration}s`,
       }}
-      title={`${listing.title} — Lv ${listing.level} · ${formatUsd(listing.bid)}`}
+      title={`${listing.title} — Lv ${listing.level} · ${formatUsd(listing.bid)} · ${theme.label}`}
     >
       <span
         className={cn(
-          "inline-flex max-w-full items-center gap-2 truncate text-left transition",
-          visual.strength > 0.65
-            ? "text-neutral-900"
-            : visual.strength > 0.35
-              ? "text-neutral-700"
-              : "text-neutral-400"
+          "pill-mark",
+          visual.strength < 0.2 && "pill-mark--quiet"
         )}
+        style={
+          {
+            "--s": visual.strength,
+            "--pill-bg": theme.bg,
+            "--pill-fg": theme.fg,
+            "--pill-outline": theme.outline,
+            "--pill-rotate": `${look.rotateDeg}deg`,
+            "--pill-scale": look.scale,
+            "--pill-weight": look.weight,
+            "--pill-tracking": `${look.trackingEm}em`,
+            "--pill-opacity": visual.opacity,
+            "--bob": `${look.bobPx}px`,
+            "--bob-duration": `${look.bobDuration}s`,
+            "--bob-delay": `-${look.phase * look.bobDuration}s`,
+          } as CSSProperties
+        }
       >
         {showIcon ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={listing.faviconUrl}
             alt=""
-            width={iconSize}
-            height={iconSize}
-            className="shrink-0 rounded-sm"
-            style={{ width: iconSize, height: iconSize }}
+            className="pill-mark__icon"
             onError={() => setIconFailed(true)}
           />
         ) : null}
-        <span
-          className={cn(
-            "truncate font-[family-name:var(--font-display)] font-semibold tracking-tight",
-            visual.size < 100
-              ? "text-sm"
-              : visual.size < 150
-                ? "text-lg"
-                : visual.size < 190
-                  ? "text-2xl"
-                  : "text-3xl"
-          )}
-        >
-          {listing.title}
-        </span>
+        <span className="pill-mark__title">{listing.title}</span>
       </span>
     </a>
   );

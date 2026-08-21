@@ -16,7 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LevelSlider } from "@/components/level-slider";
+import { ThemePicker } from "@/components/theme-picker";
 import { formatUsd } from "@/lib/bid-scale";
+import {
+  DEFAULT_PILL_THEME,
+  isPillThemeId,
+  type PillThemeId,
+} from "@/lib/pill-themes";
 import {
   buildEconomy,
   levelToCents,
@@ -41,6 +47,7 @@ export function BoostDialog({
     economyProp ?? buildEconomy(0, 0)
   );
   const [level, setLevel] = useState(10);
+  const [theme, setTheme] = useState<PillThemeId>(DEFAULT_PILL_THEME);
   const [message, setMessage] = useState("Great work!");
   const [xHandle, setXHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +79,11 @@ export function BoostDialog({
   useEffect(() => {
     if (listing) {
       setLevel(floor);
+      setTheme(
+        listing.theme && isPillThemeId(listing.theme)
+          ? listing.theme
+          : DEFAULT_PILL_THEME
+      );
       setMessage("Great work!");
       setXHandle("");
       setError(null);
@@ -106,6 +118,7 @@ export function BoostDialog({
           type: "boost",
           listingId: listing.id,
           level,
+          theme,
           message: message.trim(),
           xHandle: xHandle.trim(),
         }),
@@ -125,7 +138,7 @@ export function BoostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
+      <DialogContent className="max-h-[min(92dvh,44rem)] overflow-y-auto border-neutral-200 bg-white text-neutral-900 sm:max-w-md">
         <form onSubmit={onSubmit}>
           <DialogHeader>
             <DialogTitle className="font-[family-name:var(--font-display)] text-xl">
@@ -194,6 +207,8 @@ export function BoostDialog({
                   </p>
                 </div>
               )}
+
+              <ThemePicker value={theme} onChange={setTheme} />
 
               <div className="space-y-2">
                 <Label htmlFor="boost-message">Message</Label>

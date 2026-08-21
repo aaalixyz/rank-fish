@@ -117,7 +117,7 @@
   cursor: pointer;
 }
 
-/* Field badges — left → right loop (negative delay phases each badge) */
+/* Field badges — left → right loop (negative delay phases each badge). */
 @keyframes badge-drift {
   from {
     transform: translateX(-20vw);
@@ -131,4 +131,89 @@
   animation-name: badge-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+/*
+  Pill marks — size from level (--s: 0–1) + vmin so type tracks viewport
+  resize (width and height). Lv 25 sits around half of the old maxed-out look.
+*/
+.pill-mark {
+  --s: 0;
+  --pill-bg: #ffffff;
+  --pill-fg: #171717;
+  --pill-outline: rgb(23 23 23 / 16%);
+  --pill-rotate: 0deg;
+  --pill-scale: 1;
+  --pill-weight: 600;
+  --pill-tracking: -0.02em;
+  --pill-opacity: 1;
+  --bob: 6px;
+  --bob-duration: 6s;
+  --bob-delay: 0s;
+
+  display: inline-flex;
+  max-width: min(46vw, 18em);
+  align-items: center;
+  gap: 0.42em;
+  border: 1px solid var(--pill-outline);
+  border-radius: 999px;
+  background: var(--pill-bg);
+  padding: 0.32em 0.88em 0.36em;
+  color: var(--pill-fg);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(
+    0.7rem,
+    calc(0.4rem + (0.9 + var(--s) * 2) * 1vmin),
+    1.7rem
+  );
+  font-weight: var(--pill-weight);
+  letter-spacing: var(--pill-tracking);
+  line-height: 1.15;
+  opacity: var(--pill-opacity);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 4%);
+  transform-origin: center center;
+  animation: pill-bob var(--bob-duration) ease-in-out infinite alternate;
+  animation-delay: var(--bob-delay);
+}
+
+.pill-mark--quiet {
+  opacity: calc(var(--pill-opacity) * 0.92);
+}
+
+.pill-mark--static {
+  animation: none;
+  transform: none;
+}
+
+.pill-mark__icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  border-radius: 0.15em;
+  object-fit: cover;
+}
+
+.pill-mark__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes pill-bob {
+  from {
+    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+      translateY(calc(var(--bob) * -0.5));
+  }
+  to {
+    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+      translateY(calc(var(--bob) * 0.5));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-drift,
+  .pill-mark {
+    animation: none;
+  }
 }
