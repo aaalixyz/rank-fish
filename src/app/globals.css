@@ -132,3 +132,15 @@
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
+
+/* Rank ledger — soft receipt paper */
+.receipt {
+  background-image:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.92), rgba(250, 246, 238, 0.98)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(0, 0, 0, 0.015) 28px
+    );
+}
