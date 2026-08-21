@@ -9,19 +9,54 @@ import { cn } from "@/lib/utils";
 
 type FloatingBadgeProps = {
   listing: Listing;
+  index: number;
+};
+
+type PillVars = CSSProperties & {
+  "--s": string;
+  "--pill-bg": string;
+  "--pill-fg": string;
+  "--pill-outline": string;
+  "--pill-rotate": string;
+  "--pill-scale": string;
+  "--pill-weight": string;
+  "--pill-tracking": string;
+  "--pill-opacity": string;
+  "--bob": string;
+  "--bob-duration": string;
+  "--bob-delay": string;
 };
 
 /**
  * CSS-driven L→R loop. Framer keyframes were painting at translateX(114vw)
  * (off-screen) after hydration — native animation + negative delay is reliable.
+ *
+ * Lane / tilt / weight / tracking / bob / scale jitter hash from listing.id
+ * so SSR and hydration match. Font-size lives in CSS (vmin + --s) so resize
+ * is smooth without a React listener.
  */
-export function FloatingBadge({ listing }: FloatingBadgeProps) {
+export function FloatingBadge({ listing, index }: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
-  const look = getBadgeLook(listing.id);
+  const look = getBadgeLook(listing.id, index, visual.strength);
   const theme = resolvePillTheme(listing.theme);
   const duration = visual.duration * look.speedJitter;
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(listing.faviconUrl) && !iconFailed;
+
+  const pillStyle: PillVars = {
+    "--s": visual.strength.toFixed(4),
+    "--pill-bg": theme.bg,
+    "--pill-fg": theme.fg,
+    "--pill-outline": theme.outline,
+    "--pill-rotate": `${look.rotateDeg.toFixed(2)}deg`,
+    "--pill-scale": look.scale.toFixed(3),
+    "--pill-weight": String(look.weight),
+    "--pill-tracking": `${look.trackingEm.toFixed(4)}em`,
+    "--pill-opacity": visual.opacity.toFixed(3),
+    "--bob": `${look.bobEm.toFixed(3)}em`,
+    "--bob-duration": `${look.bobDuration.toFixed(2)}s`,
+    "--bob-delay": `-${(look.phase * look.bobDuration).toFixed(2)}s`,
+  };
 
   return (
     <a
@@ -42,22 +77,7 @@ export function FloatingBadge({ listing }: FloatingBadgeProps) {
           "pill-mark",
           visual.strength < 0.2 && "pill-mark--quiet"
         )}
-        style={
-          {
-            "--s": visual.strength,
-            "--pill-bg": theme.bg,
-            "--pill-fg": theme.fg,
-            "--pill-outline": theme.outline,
-            "--pill-rotate": `${look.rotateDeg}deg`,
-            "--pill-scale": look.scale,
-            "--pill-weight": look.weight,
-            "--pill-tracking": `${look.trackingEm}em`,
-            "--pill-opacity": visual.opacity,
-            "--bob": `${look.bobPx}px`,
-            "--bob-duration": `${look.bobDuration}s`,
-            "--bob-delay": `-${look.phase * look.bobDuration}s`,
-          } as CSSProperties
-        }
+        style={pillStyle}
       >
         {showIcon ? (
           // eslint-disable-next-line @next/next/no-img-element

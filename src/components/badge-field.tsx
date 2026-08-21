@@ -36,8 +36,12 @@ export function BadgeField({ listings }: BadgeFieldProps) {
             </p>
           </div>
         ) : (
-          listings.map((listing) => (
-            <FloatingBadge key={listing.id} listing={listing} />
+          listings.map((listing, index) => (
+            <FloatingBadge
+              key={listing.id}
+              listing={listing}
+              index={index}
+            />
           ))
         )}
       </div>
