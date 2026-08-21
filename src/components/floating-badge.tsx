@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import type { Listing } from "@/db/schema";
 import { formatUsd, getBidVisual } from "@/lib/bid-scale";
 import { cn } from "@/lib/utils";
@@ -19,6 +18,10 @@ function hashUnit(n: number) {
   return x - Math.floor(x);
 }
 
+/**
+ * CSS-driven L→R loop. Framer keyframes were painting at translateX(114vw)
+ * (off-screen) after hydration — native animation + negative delay is reliable.
+ */
 export function FloatingBadge({
   listing,
   minBid,
@@ -30,33 +33,24 @@ export function FloatingBadge({
   const phase = hashUnit(index + 1);
   const speedJitter = 0.85 + hashUnit(index + 17) * 0.35;
   const duration = visual.duration * speedJitter;
-  const delay = -(phase * duration);
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(listing.faviconUrl) && !iconFailed;
   const iconSize = Math.max(14, Math.round(visual.size * 0.14));
 
   return (
-    <motion.a
+    <a
       href={`/api/click?id=${listing.id}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="group absolute will-change-transform"
+      className="badge-drift group absolute left-0 will-change-transform"
       style={{
         top: `${y * 100}%`,
         width: visual.size * 1.6,
         marginTop: -visual.size * 0.2,
         zIndex: Math.round(10 + visual.strength * 40),
         opacity: visual.opacity,
-      }}
-      initial={false}
-      animate={{ x: ["-14vw", "114vw"] }}
-      transition={{
-        x: {
-          duration,
-          repeat: Infinity,
-          ease: "linear",
-          delay,
-        },
+        animationDuration: `${duration}s`,
+        animationDelay: `-${phase * duration}s`,
       }}
       title={`${listing.title} — Lv ${listing.level} · ${formatUsd(listing.bid)}`}
     >
@@ -97,6 +91,6 @@ export function FloatingBadge({
           {listing.title}
         </span>
       </span>
-    </motion.a>
+    </a>
   );
 }

@@ -18,7 +18,7 @@ export type BidVisual = {
 
 const MIN_SIZE = 72;
 const MAX_SIZE = 220;
-const MIN_OPACITY = 0.28;
+const MIN_OPACITY = 0.45;
 const MAX_OPACITY = 1;
 const MIN_DURATION = 18;
 const MAX_DURATION = 48;
