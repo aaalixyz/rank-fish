@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { BoostDialog } from "@/components/boost-dialog";
 import type { EconomySnapshot } from "@/lib/pricing";
 import { CLICKS_PER_SLOT } from "@/lib/pricing";
+import { listingHref } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
 
 export type ListingWithMessages = Listing & {
@@ -18,13 +19,14 @@ export type ListingWithMessages = Listing & {
 type LeaderboardProps = {
   listings: ListingWithMessages[];
   economy: EconomySnapshot;
+  demo?: boolean;
 };
 
 function xProfileUrl(handle: string) {
   return `https://x.com/${encodeURIComponent(handle)}`;
 }
 
-export function Leaderboard({ listings, economy }: LeaderboardProps) {
+export function Leaderboard({ listings, economy, demo = false }: LeaderboardProps) {
   const [boostTarget, setBoostTarget] = useState<Listing | null>(null);
 
   const ranked = useMemo(
@@ -83,7 +85,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <a
-                          href={`/api/click?id=${listing.id}`}
+                          href={listingHref(listing, demo)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="group flex min-w-0 flex-1 items-start gap-2.5"

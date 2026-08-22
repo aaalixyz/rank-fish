@@ -11,9 +11,10 @@ import {
 
 type BadgeFieldProps = {
   listings: Listing[];
+  demo?: boolean;
 };
 
-export function BadgeField({ listings }: BadgeFieldProps) {
+export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
   const listingKey = useMemo(
     () =>
       listings
@@ -100,6 +101,7 @@ export function BadgeField({ listings }: BadgeFieldProps) {
                 listing={listing}
                 look={look}
                 onLoop={() => handleLoop(listing.id)}
+                demo={demo}
               />
             );
           })

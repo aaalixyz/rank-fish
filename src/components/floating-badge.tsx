@@ -9,6 +9,7 @@ import {
 import type { Listing } from "@/db/schema";
 import { progressToVw, type BadgeLook } from "@/lib/badge-look";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
+import { listingHref } from "@/lib/demo-data";
 import { resolvePillTheme } from "@/lib/pill-themes";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ type FloatingBadgeProps = {
   listing: Listing;
   look: BadgeLook;
   onLoop: () => void;
+  demo?: boolean;
 };
 
 type PillVars = CSSProperties & {
@@ -37,7 +39,12 @@ type PillVars = CSSProperties & {
  * real coordinate (refresh = new XY). CSS keyframes + negative delay used
  * to pin every listing to the same hashed place on every load.
  */
-export function FloatingBadge({ listing, look, onLoop }: FloatingBadgeProps) {
+export function FloatingBadge({
+  listing,
+  look,
+  onLoop,
+  demo = false,
+}: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
   const theme = resolvePillTheme(listing.theme);
   const duration = visual.duration;
@@ -111,7 +118,7 @@ export function FloatingBadge({ listing, look, onLoop }: FloatingBadgeProps) {
   return (
     <a
       ref={nodeRef}
-      href={`/api/click?id=${listing.id}`}
+      href={listingHref(listing, demo)}
       target="_blank"
       rel="noopener noreferrer"
       className="badge-drift group absolute left-0 will-change-transform"

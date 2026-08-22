@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LevelSlider } from "@/components/level-slider";
 import { ThemePicker } from "@/components/theme-picker";
+import { useDemoMode } from "@/components/demo-mode";
 import { formatUsd } from "@/lib/bid-scale";
 import {
   DEFAULT_PILL_THEME,
@@ -43,6 +44,7 @@ export function BoostDialog({
   onOpenChange,
   economy: economyProp,
 }: BoostDialogProps) {
+  const demo = useDemoMode();
   const [economy, setEconomy] = useState<EconomySnapshot>(
     economyProp ?? buildEconomy(0, 0)
   );
@@ -58,7 +60,7 @@ export function BoostDialog({
   }, [economyProp]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || demo.active) return;
     let cancelled = false;
     fetch("/api/economy")
       .then((r) => r.json())
@@ -69,7 +71,7 @@ export function BoostDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, demo.active]);
 
   const floor = useMemo(() => {
     if (!listing) return 1;
@@ -104,6 +106,10 @@ export function BoostDialog({
     if (!listing) return;
 
     setError(null);
+    if (demo.active) {
+      setError("Demo board — checkout is off. Click the logo twice to leave.");
+      return;
+    }
     if (targetBid <= listing.bid) {
       setError(`Pick a higher level than the current ${formatUsd(listing.bid)}`);
       return;

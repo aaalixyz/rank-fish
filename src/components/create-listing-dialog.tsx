@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LevelSlider } from "@/components/level-slider";
 import { ThemePicker } from "@/components/theme-picker";
+import { useDemoMode } from "@/components/demo-mode";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
 import {
   DEFAULT_PILL_THEME,
@@ -42,6 +43,7 @@ export function CreateListingDialog({
   triggerSize = "default",
   economy: economyProp,
 }: CreateListingDialogProps) {
+  const demo = useDemoMode();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -58,7 +60,7 @@ export function CreateListingDialog({
   }, [economyProp]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || demo.active) return;
     let cancelled = false;
     fetch("/api/economy")
       .then((r) => r.json())
@@ -69,7 +71,7 @@ export function CreateListingDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, demo.active]);
 
   const priceCents = useMemo(
     () =>
@@ -82,6 +84,11 @@ export function CreateListingDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (demo.active) {
+      setError("Demo board — checkout is off. Click the logo twice to leave.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
