@@ -77,7 +77,7 @@ export function CreateListingDialog({
     [level, economy.createMinCents, economy.createMaxCents]
   );
   const previewTheme = resolvePillTheme(theme);
-  const previewStrength = getLevelVisual(level).strength;
+  const previewVisual = getLevelVisual(level);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -171,10 +171,12 @@ export function CreateListingDialog({
                   className="pill-mark pill-mark--static"
                   style={
                     {
-                      "--s": previewStrength,
+                      "--s": previewVisual.strength,
                       "--pill-bg": previewTheme.bg,
                       "--pill-fg": previewTheme.fg,
                       "--pill-outline": previewTheme.outline,
+                      "--pill-weight": String(previewVisual.weight),
+                      "--pill-tracking": `${previewVisual.trackingEm}em`,
                     } as CSSProperties
                   }
                 >
