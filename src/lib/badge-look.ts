@@ -1,76 +1,131 @@
 /**
- * Stable, per-listing visual jitter so the field does not look lined-up.
- * Hashed from listing.id — same on server and client (no hydration flicker).
+ * Live field scatter. Rolled with Math.random() on the client so every
+ * refresh (and every L→R wrap) gets a new X, Y, and tilt.
+ *
+ * X is an explicit 0–1 progress along the drift path — not a CSS
+ * animation-delay — so the first paint is already in a random place.
  */
 
-const GOLDEN = 0.6180339887498949;
 const WEIGHTS = [500, 600, 700, 800] as const;
+
+export const DRIFT_FROM_VW = -18;
+export const DRIFT_TO_VW = 108;
+export const DRIFT_SPAN_VW = DRIFT_TO_VW - DRIFT_FROM_VW;
+
+/** Keep starting X on-screen so a reload never looks empty. */
+const VISIBLE_PROGRESS_MIN = 0.16;
+const VISIBLE_PROGRESS_MAX = 0.84;
+
+const MIN_Y = 0.16;
+const MAX_Y = 0.82;
+const MIN_LANE_GAP = 0.14;
+const MIN_PROGRESS_GAP = 0.2;
 
 export type BadgeLook = {
   /** Vertical position, 0–1 of the field */
   lane: number;
+  /** 0–1 point along the L→R path (0 = just left of the viewport) */
+  progress: number;
+  /** Seconds to sit still at the rolled XY before drifting */
+  enterDelay: number;
   rotateDeg: number;
   weight: (typeof WEIGHTS)[number];
   trackingEm: number;
-  /** Tiny scale jitter that does not erase level ranking */
   scale: number;
-  /** Bob amplitude, in em so it tracks font-size / viewport */
   bobEm: number;
   bobDuration: number;
-  /** 0–1 animation phase */
-  phase: number;
   speedJitter: number;
 };
 
-/** Deterministic 0..1 from a string seed + salt. */
-export function hashUnit(seed: string, salt = 0): number {
-  let h = 2166136261 ^ (salt | 0);
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  }
-  h ^= h >>> 16;
-  h = Math.imul(h, 2246822507);
-  h ^= h >>> 13;
-  h = Math.imul(h, 3266489909);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
+export function progressToVw(progress: number): number {
+  return DRIFT_FROM_VW + progress * DRIFT_SPAN_VW;
 }
 
-function mix(a: number, b: number, t: number) {
-  return a + (b - a) * t;
+function rand(min: number, max: number) {
+  return min + Math.random() * (max - min);
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n));
+function pickWeight(): (typeof WEIGHTS)[number] {
+  return WEIGHTS[Math.floor(Math.random() * WEIGHTS.length)];
 }
 
-/**
- * Golden-ratio lanes keep badges from stacking; id-hash scatter
- * breaks the even grid. `strength` lightly biases weight so bigger
- * levels still read heavier without locking every badge to one cut.
- */
-export function getBadgeLook(
-  id: string,
-  index = 0,
-  strength = 0.5
-): BadgeLook {
-  const h = (salt: number) => hashUnit(id, salt);
-
-  const spread = (index * GOLDEN) % 1;
-  const scatter = (h(11) - 0.5) * 0.18;
-  const lane = clamp(0.12 + spread * 0.72 + scatter, 0.1, 0.86);
-
-  const weightT = clamp(strength * 0.5 + h(7) * 0.5, 0, 0.999);
-
+export function rollPersonality(): Omit<
+  BadgeLook,
+  "lane" | "progress" | "enterDelay"
+> {
+  const tiltSign = Math.random() < 0.5 ? -1 : 1;
   return {
-    lane,
-    rotateDeg: mix(-5.5, 5.5, h(23)),
-    weight: WEIGHTS[Math.floor(weightT * WEIGHTS.length)],
-    trackingEm: mix(-0.055, 0.055, h(29)),
-    scale: mix(0.94, 1.06, h(41)),
-    bobEm: mix(0.12, 0.48, h(53)),
-    bobDuration: mix(3.6, 7.2, h(67)),
-    phase: h(1),
-    speedJitter: mix(0.84, 1.2, h(17)),
+    // Always a few degrees so tilt is visible; cap so it stays slight.
+    rotateDeg: tiltSign * rand(4, 13),
+    weight: pickWeight(),
+    trackingEm: rand(-0.05, 0.06),
+    scale: rand(0.92, 1.1),
+    bobEm: rand(0.16, 0.5),
+    bobDuration: rand(3.6, 7.4),
+    speedJitter: rand(0.78, 1.22),
+  };
+}
+
+export function rollLane(occupied: number[]): number {
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const lane = rand(MIN_Y, MAX_Y);
+    if (occupied.every((y) => Math.abs(y - lane) >= MIN_LANE_GAP)) {
+      return lane;
+    }
+  }
+  return rand(MIN_Y, MAX_Y);
+}
+
+function rollProgress(taken: number[]): number {
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const progress = rand(VISIBLE_PROGRESS_MIN, VISIBLE_PROGRESS_MAX);
+    if (taken.every((p) => Math.abs(p - progress) >= MIN_PROGRESS_GAP)) {
+      return progress;
+    }
+  }
+  return rand(VISIBLE_PROGRESS_MIN, VISIBLE_PROGRESS_MAX);
+}
+
+/** Fresh scatter for a page load / remount. Every badge starts on-screen. */
+export function rollField(ids: string[]): Map<string, BadgeLook> {
+  const map = new Map<string, BadgeLook>();
+  const lanes: number[] = [];
+  const progresses: number[] = [];
+  const order = [...ids].sort(() => Math.random() - 0.5);
+
+  order.forEach((id, rank) => {
+    const lane = rollLane(lanes);
+    lanes.push(lane);
+    const progress = rollProgress(progresses);
+    progresses.push(progress);
+
+    map.set(id, {
+      ...rollPersonality(),
+      lane,
+      progress,
+      enterDelay: rank * rand(0.08, 0.22),
+    });
+  });
+
+  return map;
+}
+
+/** New Y + tilt when a badge wraps. Progress is reset to 0 by the mover. */
+export function rerollOnLoop(
+  current: BadgeLook,
+  occupiedLanes: number[]
+): BadgeLook {
+  const next = rollPersonality();
+  return {
+    ...current,
+    rotateDeg: next.rotateDeg,
+    weight: next.weight,
+    trackingEm: next.trackingEm,
+    scale: next.scale,
+    bobEm: next.bobEm,
+    bobDuration: next.bobDuration,
+    lane: rollLane(occupiedLanes),
+    progress: 0,
+    enterDelay: 0,
   };
 }

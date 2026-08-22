@@ -117,27 +117,11 @@
   cursor: pointer;
 }
 
-/* Field badges — left → right loop (negative delay phases each badge).
-   --field-unit tracks the smaller viewport axis so width *and* height
-   resizes scale type without a JS listener. */
+/* Field badges — X is JS translate3d; --field-unit scales type on resize. */
 .badge-field {
   --field-unit: min(1vw, 1dvh);
 }
 
-@keyframes badge-drift {
-  from {
-    transform: translateX(-20vw);
-  }
-  to {
-    transform: translateX(110vw);
-  }
-}
-
-.badge-drift {
-  animation-name: badge-drift;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
 
 /*
   Pill marks — size from level (--s: 0–1) + --field-unit so type tracks
@@ -178,6 +162,7 @@
   line-height: 1.15;
   opacity: var(--pill-opacity);
   box-shadow: 0 1px 0 rgb(0 0 0 / 4%);
+  transform: rotate(var(--pill-rotate)) scale(var(--pill-scale));
   transform-origin: center center;
   animation: pill-bob var(--bob-duration) ease-in-out infinite alternate;
   animation-delay: var(--bob-delay);
@@ -225,8 +210,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .badge-drift,
   .pill-mark {
     animation: none;
+    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale));
   }
 }
