@@ -50,6 +50,17 @@ export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingKey]);
 
+  function handlePlace(id: string, place: { progress: number; lane: number }) {
+    setLooks((prev) => {
+      if (!prev) return prev;
+      const current = prev.get(id);
+      if (!current) return prev;
+      const next = new Map(prev);
+      next.set(id, { ...current, ...place, enterDelay: 0 });
+      return next;
+    });
+  }
+
   function handleLoop(id: string) {
     setLooks((prev) => {
       if (!prev) return prev;
@@ -101,6 +112,7 @@ export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
                 listing={listing}
                 look={look}
                 onLoop={() => handleLoop(listing.id)}
+                onPlace={(place) => handlePlace(listing.id, place)}
                 demo={demo}
               />
             );

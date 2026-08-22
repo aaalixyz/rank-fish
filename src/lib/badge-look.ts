@@ -32,8 +32,8 @@ export const ON_SCREEN_CAP = 18;
 /** How many may live on the 200vw strip at t=0 (visible + wings). */
 export const STRIP_CAP = 36;
 
-const MIN_Y = 0.14;
-const MAX_Y = 0.84;
+export const MIN_LANE = 0.14;
+export const MAX_LANE = 0.84;
 const MIN_LANE_GAP = 0.11;
 
 export type BadgeLook = {
@@ -50,6 +50,18 @@ export type BadgeLook = {
 
 export function progressToVw(progress: number): number {
   return DRIFT_FROM_VW + progress * DRIFT_SPAN_VW;
+}
+
+export function vwToProgress(vw: number): number {
+  return (vw - DRIFT_FROM_VW) / DRIFT_SPAN_VW;
+}
+
+export function clampLane(lane: number): number {
+  return Math.min(MAX_LANE, Math.max(MIN_LANE, lane));
+}
+
+export function clampProgress(progress: number): number {
+  return Math.min(1, Math.max(0, progress));
 }
 
 export function isOnScreen(progress: number): boolean {
@@ -89,12 +101,12 @@ export function rollMotion(): Pick<
 
 export function rollLane(occupied: number[]): number {
   for (let attempt = 0; attempt < 24; attempt++) {
-    const lane = rand(MIN_Y, MAX_Y);
+    const lane = rand(MIN_LANE, MAX_LANE);
     if (occupied.every((y) => Math.abs(y - lane) >= MIN_LANE_GAP)) {
       return lane;
     }
   }
-  return rand(MIN_Y, MAX_Y);
+  return rand(MIN_LANE, MAX_LANE);
 }
 
 type Slot = { progress: number; lane: number };
@@ -107,7 +119,7 @@ function packBand(count: number, pMin: number, pMax: number): Slot[] {
   if (count <= 0) return [];
 
   const xSpan = Math.max(0.04, pMax - pMin);
-  const ySpan = MAX_Y - MIN_Y;
+  const ySpan = MAX_LANE - MIN_LANE;
   const widthVw = xSpan * DRIFT_SPAN_VW;
   const aspect = widthVw / Math.max(ySpan * 100, 1);
   let cols = Math.max(1, Math.round(Math.sqrt(count * Math.max(aspect, 0.5))));
@@ -123,7 +135,7 @@ function packBand(count: number, pMin: number, pMax: number): Slot[] {
     for (let c = 0; c < cols; c++) {
       cells.push({
         progress: pMin + ((c + 0.5) / cols) * xSpan,
-        lane: MIN_Y + ((r + 0.5) / rows) * ySpan,
+        lane: MIN_LANE + ((r + 0.5) / rows) * ySpan,
       });
     }
   }
@@ -138,8 +150,8 @@ function packBand(count: number, pMin: number, pMax: number): Slot[] {
       ),
       lane: clamp(
         cell.lane + rand(-0.28, 0.28) * (ySpan / rows),
-        MIN_Y,
-        MAX_Y
+        MIN_LANE,
+        MAX_LANE
       ),
     }));
 }

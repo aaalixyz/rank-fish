@@ -3,6 +3,8 @@ import {
   DRIFT_FROM_VW,
   DRIFT_SPAN_VW,
   DRIFT_TO_VW,
+  MIN_LANE,
+  MAX_LANE,
   ON_SCREEN_CAP,
   STRIP_CAP,
   VIEW_PROGRESS_MAX,
@@ -10,6 +12,7 @@ import {
   isOnScreen,
   progressToVw,
   rollField,
+  vwToProgress,
 } from "./badge-look";
 
 assert.equal(DRIFT_SPAN_VW, 200);
@@ -17,6 +20,7 @@ assert.equal(DRIFT_FROM_VW, -50);
 assert.equal(DRIFT_TO_VW, 150);
 assert.ok(Math.abs(VIEW_PROGRESS_MIN - 0.25) < 1e-9);
 assert.ok(Math.abs(VIEW_PROGRESS_MAX - 0.75) < 1e-9);
+assert.ok(Math.abs(vwToProgress(progressToVw(0.4)) - 0.4) < 1e-9);
 
 const smallIds = ["a", "b", "c"];
 const first = rollField(smallIds);
@@ -28,7 +32,7 @@ assert.equal(second.size, 3);
 for (const id of smallIds) {
   const look = first.get(id);
   assert.ok(look, `missing ${id}`);
-  assert.ok(look.lane >= 0.14 && look.lane <= 0.84, `lane ${look.lane}`);
+  assert.ok(look.lane >= MIN_LANE && look.lane <= MAX_LANE, `lane ${look.lane}`);
   assert.ok(
     isOnScreen(look.progress),
     `small boards stay on-screen, got ${look.progress}`
