@@ -5,9 +5,10 @@ import { FloatingBadge } from "@/components/floating-badge";
 
 type BadgeFieldProps = {
   listings: Listing[];
+  demo?: boolean;
 };
 
-export function BadgeField({ listings }: BadgeFieldProps) {
+export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
   return (
     <section className="badge-field relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
       <div
@@ -41,6 +42,7 @@ export function BadgeField({ listings }: BadgeFieldProps) {
               key={listing.id}
               listing={listing}
               index={index}
+              demo={demo}
             />
           ))
         )}

@@ -4,12 +4,14 @@ import { useState, type CSSProperties } from "react";
 import type { Listing } from "@/db/schema";
 import { getBadgeLook } from "@/lib/badge-look";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
+import { listingHref } from "@/lib/demo-data";
 import { resolvePillTheme } from "@/lib/pill-themes";
 import { cn } from "@/lib/utils";
 
 type FloatingBadgeProps = {
   listing: Listing;
   index: number;
+  demo?: boolean;
 };
 
 type PillVars = CSSProperties & {
@@ -35,7 +37,7 @@ type PillVars = CSSProperties & {
  * so SSR and hydration match. Font-size lives in CSS (vmin + --s) so resize
  * is smooth without a React listener.
  */
-export function FloatingBadge({ listing, index }: FloatingBadgeProps) {
+export function FloatingBadge({ listing, index, demo = false }: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
   const look = getBadgeLook(listing.id, index, visual.strength);
   const theme = resolvePillTheme(listing.theme);
@@ -60,7 +62,7 @@ export function FloatingBadge({ listing, index }: FloatingBadgeProps) {
 
   return (
     <a
-      href={`/api/click?id=${listing.id}`}
+      href={listingHref(listing, demo)}
       target="_blank"
       rel="noopener noreferrer"
       className="badge-drift group absolute left-0 will-change-transform"
