@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 type FloatingBadgeProps = {
   listing: Listing;
   look: BadgeLook;
+  onLoop: () => void;
 };
 
 type PillVars = CSSProperties & {
@@ -27,16 +28,17 @@ type PillVars = CSSProperties & {
   "--bob-delay": string;
 };
 
-/**
- * CSS-driven L→R loop. Placement (lane + phase) comes from layoutField so
- * badges are spread across the canvas instead of hashing into the same band.
- */
-export function FloatingBadge({ listing, look }: FloatingBadgeProps) {
+export function FloatingBadge({ listing, look, onLoop }: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
   const theme = resolvePillTheme(listing.theme);
   const duration = visual.duration * look.speedJitter;
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(listing.faviconUrl) && !iconFailed;
+
+  const animationDelay =
+    look.enterDelay > 0
+      ? `${look.enterDelay.toFixed(2)}s`
+      : `-${(look.phase * duration).toFixed(2)}s`;
 
   const pillStyle: PillVars = {
     "--s": visual.strength.toFixed(4),
@@ -63,9 +65,13 @@ export function FloatingBadge({ listing, look }: FloatingBadgeProps) {
         top: `${look.lane * 100}%`,
         zIndex: Math.round(10 + visual.strength * 40),
         animationDuration: `${duration}s`,
-        animationDelay: `-${look.phase * duration}s`,
+        animationDelay,
       }}
       title={`${listing.title} — Lv ${listing.level} · ${formatUsd(listing.bid)} · ${theme.label}`}
+      onAnimationIteration={(event) => {
+        if (event.target !== event.currentTarget) return;
+        onLoop();
+      }}
     >
       <span
         className={cn(

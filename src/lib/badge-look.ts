@@ -1,9 +1,7 @@
 /**
- * Per-listing personality + field layout.
- *
- * Looks are hashed from listing.id (stable SSR/hydration). Positions and
- * start-times are assigned as a group so two badges cannot land on the same
- * band or the same spot in the loop — hash-only jitter was too subtle.
+ * Live field placement. Values are rolled with Math.random() on the client
+ * so every refresh (and every L→R wrap) gets a new XY / tilt / enter time.
+ * Do not call these during SSR — BadgeField waits until mount.
  */
 
 const WEIGHTS = [500, 600, 700, 800] as const;
@@ -11,99 +9,106 @@ const WEIGHTS = [500, 600, 700, 800] as const;
 export type BadgeLook = {
   /** Vertical position, 0–1 of the field */
   lane: number;
+  /** 0–1 point along the L→R loop (used as a negative animation delay) */
+  phase: number;
+  /** Extra seconds to wait before first entering from the left */
+  enterDelay: number;
   rotateDeg: number;
   weight: (typeof WEIGHTS)[number];
   trackingEm: number;
-  /** Extra scale on top of level size; kept modest so ranking still reads */
   scale: number;
-  /** Vertical weave, in em so it tracks font-size / viewport */
   bobEm: number;
   bobDuration: number;
-  /** 0–1 animation phase along the L→R loop */
-  phase: number;
   speedJitter: number;
 };
 
 const MIN_Y = 0.18;
 const MAX_Y = 0.88;
+const MIN_LANE_GAP = 0.1;
 
-/** Deterministic 0..1 from a string seed + salt. */
-export function hashUnit(seed: string, salt = 0): number {
-  let h = 2166136261 ^ (salt | 0);
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-  }
-  h ^= h >>> 16;
-  h = Math.imul(h, 2246822507);
-  h ^= h >>> 13;
-  h = Math.imul(h, 3266489909);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
+function rand(min: number, max: number) {
+  return min + Math.random() * (max - min);
 }
 
-function mix(a: number, b: number, t: number) {
-  return a + (b - a) * t;
+function pickWeight(): (typeof WEIGHTS)[number] {
+  return WEIGHTS[Math.floor(Math.random() * WEIGHTS.length)];
 }
 
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n));
-}
-
-function wrap01(n: number) {
-  return ((n % 1) + 1) % 1;
-}
-
-function personality(id: string): Omit<BadgeLook, "lane" | "phase"> {
-  const h = (salt: number) => hashUnit(id, salt);
+export function rollPersonality(): Omit<BadgeLook, "lane" | "phase" | "enterDelay"> {
   return {
-    rotateDeg: mix(-18, 18, h(23)),
-    weight: WEIGHTS[Math.floor(h(7) * WEIGHTS.length) % WEIGHTS.length],
-    trackingEm: mix(-0.07, 0.09, h(29)),
-    scale: mix(0.8, 1.18, h(41)),
-    bobEm: mix(1.6, 5.2, h(53)),
-    bobDuration: mix(3.1, 8.8, h(67)),
-    speedJitter: mix(0.58, 1.52, h(17)),
+    rotateDeg: rand(-16, 16),
+    weight: pickWeight(),
+    trackingEm: rand(-0.06, 0.08),
+    scale: rand(0.84, 1.16),
+    bobEm: rand(1.4, 4.8),
+    bobDuration: rand(3.2, 8.4),
+    speedJitter: rand(0.62, 1.45),
   };
 }
 
-/**
- * Assign every badge a unique vertical band and a unique start point on the
- * L→R loop. Hash order is stable, so refresh does not reshuffle the field.
- */
-export function layoutField(
-  listings: { id: string }[]
-): Map<string, BadgeLook> {
-  const n = listings.length;
+export function rollLane(occupied: number[]): number {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const lane = rand(MIN_Y, MAX_Y);
+    if (occupied.every((y) => Math.abs(y - lane) >= MIN_LANE_GAP)) {
+      return lane;
+    }
+  }
+  return rand(MIN_Y, MAX_Y);
+}
+
+function rollPhase(taken: number[]): number {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const phase = Math.random();
+    if (taken.every((p) => circularGap(p, phase) >= 0.18)) {
+      return phase;
+    }
+  }
+  return Math.random();
+}
+
+function circularGap(a: number, b: number) {
+  const d = Math.abs(a - b);
+  return Math.min(d, 1 - d);
+}
+
+/** Fresh scatter for a page load / remount. */
+export function rollField(ids: string[]): Map<string, BadgeLook> {
   const map = new Map<string, BadgeLook>();
-  if (n === 0) return map;
+  const lanes: number[] = [];
+  const phases: number[] = [];
+  const order = [...ids].sort(() => Math.random() - 0.5);
 
-  const ordered = [...listings].sort(
-    (a, b) => hashUnit(a.id, 3) - hashUnit(b.id, 3) || a.id.localeCompare(b.id)
-  );
+  order.forEach((id, rank) => {
+    const lane = rollLane(lanes);
+    lanes.push(lane);
 
-  const span = MAX_Y - MIN_Y;
-  const band = span / n;
+    // Some wait off-stage, then enter from the left; others are already mid-drift.
+    const waitsToEnter = Math.random() < 0.4;
+    const phase = waitsToEnter ? 0 : rollPhase(phases);
+    if (!waitsToEnter) phases.push(phase);
 
-  ordered.forEach((listing, rank) => {
-    const look = personality(listing.id);
-
-    const lane =
-      n === 1
-        ? mix(MIN_Y + 0.08, MAX_Y - 0.08, hashUnit(listing.id, 11))
-        : clamp(
-            MIN_Y +
-              (rank + 0.5) * band +
-              (hashUnit(listing.id, 19) - 0.5) * band * 0.28,
-            MIN_Y,
-            MAX_Y
-          );
-
-    const phase = wrap01(
-      rank / n + (hashUnit(listing.id, 1) - 0.5) * (0.55 / n)
-    );
-
-    map.set(listing.id, { ...look, lane, phase });
+    map.set(id, {
+      ...rollPersonality(),
+      lane,
+      phase,
+      enterDelay: waitsToEnter ? rank * rand(0.35, 1.4) + rand(0.1, 0.8) : 0,
+    });
   });
 
   return map;
+}
+
+/** New Y / tilt / weave when a badge wraps. Keep delay/speed so the CSS loop does not restart. */
+export function rerollOnLoop(current: BadgeLook, occupiedLanes: number[]): BadgeLook {
+  const next = rollPersonality();
+  return {
+    ...current,
+    rotateDeg: next.rotateDeg,
+    weight: next.weight,
+    trackingEm: next.trackingEm,
+    scale: next.scale,
+    bobEm: next.bobEm,
+    bobDuration: next.bobDuration,
+    lane: rollLane(occupiedLanes),
+  };
 }

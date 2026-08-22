@@ -1,16 +1,50 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Listing } from "@/db/schema";
 import { FloatingBadge } from "@/components/floating-badge";
-import { layoutField } from "@/lib/badge-look";
+import {
+  rerollOnLoop,
+  rollField,
+  type BadgeLook,
+} from "@/lib/badge-look";
 
 type BadgeFieldProps = {
   listings: Listing[];
 };
 
 export function BadgeField({ listings }: BadgeFieldProps) {
-  const looks = useMemo(() => layoutField(listings), [listings]);
+  const listingKey = useMemo(
+    () =>
+      listings
+        .map((listing) => listing.id)
+        .sort()
+        .join("|"),
+    [listings]
+  );
+  const [looks, setLooks] = useState<Map<string, BadgeLook> | null>(null);
+
+  useEffect(() => {
+    if (!listingKey) {
+      setLooks(new Map());
+      return;
+    }
+    setLooks(rollField(listingKey.split("|")));
+  }, [listingKey]);
+
+  function handleLoop(id: string) {
+    setLooks((prev) => {
+      if (!prev) return prev;
+      const current = prev.get(id);
+      if (!current) return prev;
+      const occupied = [...prev.entries()]
+        .filter(([otherId]) => otherId !== id)
+        .map(([, look]) => look.lane);
+      const next = new Map(prev);
+      next.set(id, rerollOnLoop(current, occupied));
+      return next;
+    });
+  }
 
   return (
     <section className="badge-field relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
@@ -39,7 +73,7 @@ export function BadgeField({ listings }: BadgeFieldProps) {
               your level. Pick a pill color when you submit.
             </p>
           </div>
-        ) : (
+        ) : looks == null ? null : (
           listings.map((listing) => {
             const look = looks.get(listing.id);
             if (!look) return null;
@@ -48,6 +82,7 @@ export function BadgeField({ listings }: BadgeFieldProps) {
                 key={listing.id}
                 listing={listing}
                 look={look}
+                onLoop={() => handleLoop(listing.id)}
               />
             );
           })
