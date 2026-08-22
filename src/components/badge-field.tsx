@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import type { Listing } from "@/db/schema";
 import { FloatingBadge } from "@/components/floating-badge";
+import {
+  rerollOnLoop,
+  rollField,
+  type BadgeLook,
+} from "@/lib/badge-look";
 
 type BadgeFieldProps = {
   listings: Listing[];
@@ -9,6 +15,55 @@ type BadgeFieldProps = {
 };
 
 export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
+  const listingKey = useMemo(
+    () =>
+      listings
+        .map((listing) => listing.id)
+        .sort()
+        .join("|"),
+    [listings]
+  );
+  const [looks, setLooks] = useState<Map<string, BadgeLook> | null>(null);
+  const [generation, setGeneration] = useState(0);
+
+  function scatter() {
+    if (!listingKey) {
+      setLooks(new Map());
+      return;
+    }
+    setLooks(rollField(listingKey.split("|")));
+    setGeneration((n) => n + 1);
+  }
+
+  useLayoutEffect(() => {
+    scatter();
+    // listingKey is the only input; scatter closes over it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingKey]);
+
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) scatter();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingKey]);
+
+  function handleLoop(id: string) {
+    setLooks((prev) => {
+      if (!prev) return prev;
+      const current = prev.get(id);
+      if (!current) return prev;
+      const occupied = [...prev.entries()]
+        .filter(([otherId]) => otherId !== id)
+        .map(([, look]) => look.lane);
+      const next = new Map(prev);
+      next.set(id, rerollOnLoop(current, occupied));
+      return next;
+    });
+  }
+
   return (
     <section className="badge-field relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
       <div
@@ -36,15 +91,20 @@ export function BadgeField({ listings, demo = false }: BadgeFieldProps) {
               your level. Pick a pill color when you submit.
             </p>
           </div>
-        ) : (
-          listings.map((listing, index) => (
-            <FloatingBadge
-              key={listing.id}
-              listing={listing}
-              index={index}
-              demo={demo}
-            />
-          ))
+        ) : looks == null ? null : (
+          listings.map((listing) => {
+            const look = looks.get(listing.id);
+            if (!look) return null;
+            return (
+              <FloatingBadge
+                key={`${listing.id}:${generation}`}
+                listing={listing}
+                look={look}
+                onLoop={() => handleLoop(listing.id)}
+                demo={demo}
+              />
+            );
+          })
         )}
       </div>
     </section>

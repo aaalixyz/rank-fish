@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import type { Listing } from "@/db/schema";
-import { getBadgeLook } from "@/lib/badge-look";
+import { progressToVw, type BadgeLook } from "@/lib/badge-look";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
 import { listingHref } from "@/lib/demo-data";
 import { resolvePillTheme } from "@/lib/pill-themes";
@@ -10,7 +15,8 @@ import { cn } from "@/lib/utils";
 
 type FloatingBadgeProps = {
   listing: Listing;
-  index: number;
+  look: BadgeLook;
+  onLoop: () => void;
   demo?: boolean;
 };
 
@@ -30,20 +36,71 @@ type PillVars = CSSProperties & {
 };
 
 /**
- * CSS-driven L→R loop. Framer keyframes were painting at translateX(114vw)
- * (off-screen) after hydration — native animation + negative delay is reliable.
- *
- * Lane / tilt / weight / tracking / bob / scale jitter hash from listing.id
- * so SSR and hydration match. Font-size lives in CSS (vmin + --s) so resize
- * is smooth without a React listener.
+ * JS-driven L→R loop. X is written as translate3d so the start point is a
+ * real coordinate (refresh = new XY). CSS keyframes + negative delay used
+ * to pin every listing to the same hashed place on every load.
  */
-export function FloatingBadge({ listing, index, demo = false }: FloatingBadgeProps) {
+export function FloatingBadge({
+  listing,
+  look,
+  onLoop,
+  demo = false,
+}: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
-  const look = getBadgeLook(listing.id, index, visual.strength);
   const theme = resolvePillTheme(listing.theme);
   const duration = visual.duration * look.speedJitter;
+  const nodeRef = useRef<HTMLAnchorElement>(null);
+  const lookRef = useRef(look);
+  const durationRef = useRef(duration);
+  const onLoopRef = useRef(onLoop);
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(listing.faviconUrl) && !iconFailed;
+
+  lookRef.current = look;
+  durationRef.current = duration;
+  onLoopRef.current = onLoop;
+
+  useLayoutEffect(() => {
+    const el = nodeRef.current;
+    if (!el) return;
+
+    let progress = lookRef.current.progress;
+    let waiting = lookRef.current.enterDelay;
+
+    const paint = () => {
+      el.style.transform = `translate3d(${progressToVw(progress)}vw, 0, 0)`;
+    };
+    paint();
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (reduceMotion) return;
+
+    let last = performance.now();
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.064, (now - last) / 1000);
+      last = now;
+
+      if (waiting > 0) {
+        waiting -= dt;
+      } else {
+        progress += dt / durationRef.current;
+        if (progress >= 1) {
+          progress -= 1;
+          onLoopRef.current();
+        }
+        paint();
+      }
+
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const pillStyle: PillVars = {
     "--s": visual.strength.toFixed(4),
@@ -57,11 +114,12 @@ export function FloatingBadge({ listing, index, demo = false }: FloatingBadgePro
     "--pill-opacity": visual.opacity.toFixed(3),
     "--bob": `${look.bobEm.toFixed(3)}em`,
     "--bob-duration": `${look.bobDuration.toFixed(2)}s`,
-    "--bob-delay": `-${(look.phase * look.bobDuration).toFixed(2)}s`,
+    "--bob-delay": `-${(look.progress * look.bobDuration).toFixed(2)}s`,
   };
 
   return (
     <a
+      ref={nodeRef}
       href={listingHref(listing, demo)}
       target="_blank"
       rel="noopener noreferrer"
@@ -69,8 +127,6 @@ export function FloatingBadge({ listing, index, demo = false }: FloatingBadgePro
       style={{
         top: `${look.lane * 100}%`,
         zIndex: Math.round(10 + visual.strength * 40),
-        animationDuration: `${duration}s`,
-        animationDelay: `-${look.phase * duration}s`,
       }}
       title={`${listing.title} — Lv ${listing.level} · ${formatUsd(listing.bid)} · ${theme.label}`}
     >
