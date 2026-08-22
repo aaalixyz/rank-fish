@@ -117,7 +117,13 @@
   cursor: pointer;
 }
 
-/* Field badges — left → right loop (negative delay phases each badge) */
+/* Field badges — left → right loop (negative delay phases each badge).
+   --field-unit tracks the smaller viewport axis so width *and* height
+   resizes scale type without a JS listener. */
+.badge-field {
+  --field-unit: min(1vw, 1dvh);
+}
+
 @keyframes badge-drift {
   from {
     transform: translateX(-20vw);
@@ -131,6 +137,98 @@
   animation-name: badge-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+/*
+  Pill marks — size from level (--s: 0–1) + --field-unit so type tracks
+  viewport resize. Padding / icon / gap are em-based, so they stay
+  proportional to the font (no Tailwind bucket jumps).
+*/
+.pill-mark {
+  --s: 0;
+  --pill-bg: #ffffff;
+  --pill-fg: #171717;
+  --pill-outline: rgb(23 23 23 / 16%);
+  --pill-rotate: 0deg;
+  --pill-scale: 1;
+  --pill-weight: 600;
+  --pill-tracking: -0.02em;
+  --pill-opacity: 1;
+  --bob: 0.28em;
+  --bob-duration: 6s;
+  --bob-delay: 0s;
+
+  display: inline-flex;
+  max-width: min(72vw, 16em);
+  align-items: center;
+  gap: 0.42em;
+  border: 1px solid var(--pill-outline);
+  border-radius: 999px;
+  background: var(--pill-bg);
+  padding: 0.32em 0.88em 0.36em;
+  color: var(--pill-fg);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(
+    0.75rem,
+    calc(0.5rem + (1.05 + var(--s) * 3.1) * var(--field-unit, 1vmin)),
+    5rem
+  );
+  font-weight: var(--pill-weight);
+  letter-spacing: var(--pill-tracking);
+  line-height: 1.15;
+  opacity: var(--pill-opacity);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 4%);
+  transform-origin: center center;
+  animation: pill-bob var(--bob-duration) ease-in-out infinite alternate;
+  animation-delay: var(--bob-delay);
+}
+
+.pill-mark--quiet {
+  opacity: calc(var(--pill-opacity) * 0.92);
+}
+
+.pill-mark--static {
+  animation: none;
+  transform: none;
+  /* Dialog preview should not blow up with the field scale. */
+  font-size: clamp(
+    0.8rem,
+    calc(0.55rem + (0.55 + var(--s) * 1.6) * 1vmin),
+    1.35rem
+  );
+}
+
+.pill-mark__icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  border-radius: 0.15em;
+  object-fit: cover;
+}
+
+.pill-mark__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes pill-bob {
+  from {
+    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+      translateY(calc(var(--bob) * -0.5));
+  }
+  to {
+    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+      translateY(calc(var(--bob) * 0.5));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-drift,
+  .pill-mark {
+    animation: none;
+  }
 }
 
 /* Rank ledger — soft receipt paper */

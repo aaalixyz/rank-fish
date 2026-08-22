@@ -35,6 +35,7 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
         faviconUrl: payment.faviconUrl ?? "",
         bid: payment.targetBid,
         level: payment.level ?? 1,
+        theme: payment.theme ?? "paper",
         clicks: 0,
       })
       .returning();
@@ -70,6 +71,7 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
     .set({
       bid: sql`GREATEST(${listings.bid}, ${payment.targetBid})`,
       level: sql`GREATEST(${listings.level}, ${payment.level})`,
+      theme: payment.theme || existing.theme,
       updatedAt: new Date(),
     })
     .where(eq(listings.id, payment.listingId));

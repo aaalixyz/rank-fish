@@ -72,6 +72,7 @@ export async function POST(request: Request) {
           description: "",
           faviconUrl,
           level: data.level,
+          theme: data.theme,
           targetBid: bid,
           amountPaid: bid,
           status: "pending",
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
         amountPaid,
         message: data.message ?? "",
         xHandle: data.xHandle ?? "",
+        theme: data.theme,
         status: "pending",
       })
       .returning();

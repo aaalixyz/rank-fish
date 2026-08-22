@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Rocket } from "lucide-react";
 import type { BoostMessage, Listing } from "@/db/schema";
 import { formatUsd } from "@/lib/bid-scale";
+import { resolvePillTheme } from "@/lib/pill-themes";
 import { Button } from "@/components/ui/button";
 import { BoostDialog } from "@/components/boost-dialog";
 import type { EconomySnapshot } from "@/lib/pricing";
@@ -190,6 +191,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                     const showIcon = Boolean(listing.faviconUrl);
                     const recent = listing.messages.slice(0, 2);
                     const isTop = index < 3;
+                    const pill = resolvePillTheme(listing.theme);
 
                     return (
                       <tr
@@ -233,8 +235,16 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                               href={`/api/click?id=${listing.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="group/title inline-flex max-w-full items-center gap-1 font-[family-name:var(--font-display)] text-[15px] leading-snug text-neutral-900"
+                              className="group/title inline-flex max-w-full items-center gap-1.5 font-[family-name:var(--font-display)] text-[15px] leading-snug text-neutral-900"
                             >
+                              <span
+                                className="size-2.5 shrink-0 rounded-full border"
+                                style={{
+                                  background: pill.bg,
+                                  borderColor: pill.outline,
+                                }}
+                                title={pill.label}
+                              />
                               <span className="truncate">{listing.title}</span>
                               <ArrowUpRight className="size-3.5 shrink-0 text-neutral-300 opacity-0 transition group-hover/title:opacity-100" />
                             </a>
