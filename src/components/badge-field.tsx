@@ -1,13 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
 import type { Listing } from "@/db/schema";
 import { FloatingBadge } from "@/components/floating-badge";
+import { layoutField } from "@/lib/badge-look";
 
 type BadgeFieldProps = {
   listings: Listing[];
 };
 
 export function BadgeField({ listings }: BadgeFieldProps) {
+  const looks = useMemo(() => layoutField(listings), [listings]);
+
   return (
     <section className="badge-field relative h-[100dvh] w-screen overflow-hidden bg-[#f7f6f3]">
       <div
@@ -36,13 +40,17 @@ export function BadgeField({ listings }: BadgeFieldProps) {
             </p>
           </div>
         ) : (
-          listings.map((listing, index) => (
-            <FloatingBadge
-              key={listing.id}
-              listing={listing}
-              index={index}
-            />
-          ))
+          listings.map((listing) => {
+            const look = looks.get(listing.id);
+            if (!look) return null;
+            return (
+              <FloatingBadge
+                key={listing.id}
+                listing={listing}
+                look={look}
+              />
+            );
+          })
         )}
       </div>
     </section>

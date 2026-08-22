@@ -1,9 +1,11 @@
 /**
- * Stable, per-listing visual jitter so the field does not look lined-up.
- * Hashed from listing.id — same on server and client (no hydration flicker).
+ * Per-listing personality + field layout.
+ *
+ * Looks are hashed from listing.id (stable SSR/hydration). Positions and
+ * start-times are assigned as a group so two badges cannot land on the same
+ * band or the same spot in the loop — hash-only jitter was too subtle.
  */
 
-const GOLDEN = 0.6180339887498949;
 const WEIGHTS = [500, 600, 700, 800] as const;
 
 export type BadgeLook = {
@@ -12,15 +14,18 @@ export type BadgeLook = {
   rotateDeg: number;
   weight: (typeof WEIGHTS)[number];
   trackingEm: number;
-  /** Tiny scale jitter that does not erase level ranking */
+  /** Extra scale on top of level size; kept modest so ranking still reads */
   scale: number;
-  /** Bob amplitude, in em so it tracks font-size / viewport */
+  /** Vertical weave, in em so it tracks font-size / viewport */
   bobEm: number;
   bobDuration: number;
-  /** 0–1 animation phase */
+  /** 0–1 animation phase along the L→R loop */
   phase: number;
   speedJitter: number;
 };
+
+const MIN_Y = 0.18;
+const MAX_Y = 0.88;
 
 /** Deterministic 0..1 from a string seed + salt. */
 export function hashUnit(seed: string, salt = 0): number {
@@ -44,33 +49,61 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-/**
- * Golden-ratio lanes keep badges from stacking; id-hash scatter
- * breaks the even grid. `strength` lightly biases weight so bigger
- * levels still read heavier without locking every badge to one cut.
- */
-export function getBadgeLook(
-  id: string,
-  index = 0,
-  strength = 0.5
-): BadgeLook {
+function wrap01(n: number) {
+  return ((n % 1) + 1) % 1;
+}
+
+function personality(id: string): Omit<BadgeLook, "lane" | "phase"> {
   const h = (salt: number) => hashUnit(id, salt);
-
-  const spread = (index * GOLDEN) % 1;
-  const scatter = (h(11) - 0.5) * 0.18;
-  const lane = clamp(0.12 + spread * 0.72 + scatter, 0.1, 0.86);
-
-  const weightT = clamp(strength * 0.5 + h(7) * 0.5, 0, 0.999);
-
   return {
-    lane,
-    rotateDeg: mix(-5.5, 5.5, h(23)),
-    weight: WEIGHTS[Math.floor(weightT * WEIGHTS.length)],
-    trackingEm: mix(-0.055, 0.055, h(29)),
-    scale: mix(0.94, 1.06, h(41)),
-    bobEm: mix(0.12, 0.48, h(53)),
-    bobDuration: mix(3.6, 7.2, h(67)),
-    phase: h(1),
-    speedJitter: mix(0.84, 1.2, h(17)),
+    rotateDeg: mix(-18, 18, h(23)),
+    weight: WEIGHTS[Math.floor(h(7) * WEIGHTS.length) % WEIGHTS.length],
+    trackingEm: mix(-0.07, 0.09, h(29)),
+    scale: mix(0.8, 1.18, h(41)),
+    bobEm: mix(1.6, 5.2, h(53)),
+    bobDuration: mix(3.1, 8.8, h(67)),
+    speedJitter: mix(0.58, 1.52, h(17)),
   };
+}
+
+/**
+ * Assign every badge a unique vertical band and a unique start point on the
+ * L→R loop. Hash order is stable, so refresh does not reshuffle the field.
+ */
+export function layoutField(
+  listings: { id: string }[]
+): Map<string, BadgeLook> {
+  const n = listings.length;
+  const map = new Map<string, BadgeLook>();
+  if (n === 0) return map;
+
+  const ordered = [...listings].sort(
+    (a, b) => hashUnit(a.id, 3) - hashUnit(b.id, 3) || a.id.localeCompare(b.id)
+  );
+
+  const span = MAX_Y - MIN_Y;
+  const band = span / n;
+
+  ordered.forEach((listing, rank) => {
+    const look = personality(listing.id);
+
+    const lane =
+      n === 1
+        ? mix(MIN_Y + 0.08, MAX_Y - 0.08, hashUnit(listing.id, 11))
+        : clamp(
+            MIN_Y +
+              (rank + 0.5) * band +
+              (hashUnit(listing.id, 19) - 0.5) * band * 0.28,
+            MIN_Y,
+            MAX_Y
+          );
+
+    const phase = wrap01(
+      rank / n + (hashUnit(listing.id, 1) - 0.5) * (0.55 / n)
+    );
+
+    map.set(listing.id, { ...look, lane, phase });
+  });
+
+  return map;
 }
