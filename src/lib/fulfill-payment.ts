@@ -36,6 +36,7 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
         bid: payment.targetBid,
         level: payment.level ?? 1,
         theme: payment.theme ?? "paper",
+        xHandle: payment.xHandle ?? "",
         clicks: 0,
       })
       .returning();

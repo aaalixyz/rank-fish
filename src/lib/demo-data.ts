@@ -204,6 +204,7 @@ function buildDemoBoard(): { listings: DemoListing[]; economy: EconomySnapshot }
       bid,
       level,
       theme: PILL_THEME_IDS[i % PILL_THEME_IDS.length]!,
+      xHandle: rng() > 0.55 ? pick(rng, HANDLES) : "",
       clicks: clicks[i]!,
       createdAt,
       updatedAt,

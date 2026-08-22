@@ -28,6 +28,8 @@ export const listings = pgTable("listings", {
   level: integer("level").notNull().default(1),
   // Poster pill theme id (see src/lib/pill-themes.ts)
   theme: varchar("theme", { length: 32 }).notNull().default("paper"),
+  // Optional X / Twitter handle for the submitter (without @)
+  xHandle: varchar("x_handle", { length: 40 }).notNull().default(""),
   clicks: integer("clicks").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
