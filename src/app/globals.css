@@ -134,7 +134,6 @@
   --pill-fg: #171717;
   --pill-outline: rgb(23 23 23 / 16%);
   --pill-rotate: 0deg;
-  --pill-scale: 1;
   --pill-weight: 600;
   --pill-tracking: -0.02em;
   --pill-opacity: 1;
@@ -162,7 +161,7 @@
   line-height: 1.15;
   opacity: var(--pill-opacity);
   box-shadow: 0 1px 0 rgb(0 0 0 / 4%);
-  transform: rotate(var(--pill-rotate)) scale(var(--pill-scale));
+  transform: rotate(var(--pill-rotate));
   transform-origin: center center;
   animation: pill-bob var(--bob-duration) ease-in-out infinite alternate;
   animation-delay: var(--bob-delay);
@@ -200,11 +199,11 @@
 
 @keyframes pill-bob {
   from {
-    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+    transform: rotate(var(--pill-rotate))
       translateY(calc(var(--bob) * -0.5));
   }
   to {
-    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale))
+    transform: rotate(var(--pill-rotate))
       translateY(calc(var(--bob) * 0.5));
   }
 }
@@ -212,6 +211,6 @@
 @media (prefers-reduced-motion: reduce) {
   .pill-mark {
     animation: none;
-    transform: rotate(var(--pill-rotate)) scale(var(--pill-scale));
+    transform: rotate(var(--pill-rotate));
   }
 }

@@ -14,12 +14,25 @@ export type BidVisual = {
   opacity: number;
   /** Seconds for one full left→right loop (bigger = slower) */
   duration: number;
+  /** Font weight from level (500–800). Not randomized. */
+  weight: 500 | 600 | 700 | 800;
+  /** Letter-spacing from level. Tighter as the mark gets bigger. */
+  trackingEm: number;
 };
 
 const MIN_OPACITY = 0.9;
 const MAX_OPACITY = 1;
 const MIN_DURATION = 16;
 const MAX_DURATION = 44;
+const WEIGHTS = [500, 600, 700, 800] as const;
+
+function weightFromStrength(strength: number): (typeof WEIGHTS)[number] {
+  const index = Math.min(
+    WEIGHTS.length - 1,
+    Math.floor(strength * WEIGHTS.length)
+  );
+  return WEIGHTS[index];
+}
 
 export function getLevelVisual(level: number): BidVisual {
   const safe = Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, level));
@@ -29,6 +42,8 @@ export function getLevelVisual(level: number): BidVisual {
     strength,
     opacity: MIN_OPACITY + strength * (MAX_OPACITY - MIN_OPACITY),
     duration: MIN_DURATION + strength * (MAX_DURATION - MIN_DURATION),
+    weight: weightFromStrength(strength),
+    trackingEm: 0.012 - strength * 0.055,
   };
 }
 
