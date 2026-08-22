@@ -159,8 +159,13 @@ function buildDemoBoard(): { listings: DemoListing[]; economy: EconomySnapshot }
     return Math.floor(rng() * 18);
   });
 
+  const visits = SEEDS.map((_, i) =>
+    Math.max(0, Math.floor(clicks[i]! * (0.15 + rng() * 0.45)))
+  );
+
   const totalClicks = clicks.reduce((sum, n) => sum + n, 0);
-  const economy = buildEconomy(DEMO_LISTING_COUNT, totalClicks);
+  const totalVisits = visits.reduce((sum, n) => sum + n, 0);
+  const economy = buildEconomy(DEMO_LISTING_COUNT, totalClicks + totalVisits);
 
   const listings: DemoListing[] = SEEDS.map((seed, i) => {
     const createdAt = new Date(origin - i * 36e5 * (6 + rng() * 18));
@@ -205,6 +210,10 @@ function buildDemoBoard(): { listings: DemoListing[]; economy: EconomySnapshot }
       level,
       theme: PILL_THEME_IDS[i % PILL_THEME_IDS.length]!,
       clicks: clicks[i]!,
+      visits: visits[i]!,
+      ogImageUrl: "",
+      ogDescription: "",
+      ogFetchedAt: null,
       createdAt,
       updatedAt,
       messages,
@@ -219,8 +228,3 @@ const BOARD = buildDemoBoard();
 
 export const DEMO_LISTINGS: DemoListing[] = BOARD.listings;
 export const DEMO_ECONOMY: EconomySnapshot = BOARD.economy;
-
-export function listingHref(listing: Pick<Listing, "id" | "url">, demo: boolean) {
-  if (demo) return listing.url;
-  return `/api/click?id=${listing.id}`;
-}

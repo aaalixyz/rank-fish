@@ -28,7 +28,15 @@ export const listings = pgTable("listings", {
   level: integer("level").notNull().default(1),
   // Poster pill theme id (see src/lib/pill-themes.ts)
   theme: varchar("theme", { length: 32 }).notNull().default("paper"),
+  /** Dialog opens (preview clicks) */
   clicks: integer("clicks").notNull().default(0),
+  /** Outbound visits via "Visit site" */
+  visits: integer("visits").notNull().default(0),
+  /** Cached Open Graph preview image URL */
+  ogImageUrl: text("og_image_url").notNull().default(""),
+  /** Cached Open Graph description (falls back in UI when empty) */
+  ogDescription: varchar("og_description", { length: 280 }).notNull().default(""),
+  ogFetchedAt: timestamp("og_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

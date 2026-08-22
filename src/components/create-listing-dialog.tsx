@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { LevelSlider } from "@/components/level-slider";
 import { ThemePicker } from "@/components/theme-picker";
 import { useDemoMode } from "@/components/demo-mode";
@@ -47,6 +48,7 @@ export function CreateListingDialog({
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [level, setLevel] = useState(10);
   const [theme, setTheme] = useState<PillThemeId>(DEFAULT_PILL_THEME);
   const [economy, setEconomy] = useState<EconomySnapshot>(
@@ -98,6 +100,7 @@ export function CreateListingDialog({
           type: "create",
           url: url.trim(),
           title: title.trim(),
+          description: description.trim(),
           level,
           theme,
         }),
@@ -166,6 +169,25 @@ export function CreateListingDialog({
                   onChange={(e) => setTitle(e.target.value)}
                   className="border-neutral-200 bg-neutral-50"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Creator note{" "}
+                  <span className="font-normal text-neutral-400">(optional)</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  maxLength={280}
+                  placeholder="What is this link about?"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="min-h-20 border-neutral-200 bg-neutral-50"
+                />
+                <p className="text-xs text-neutral-400">
+                  Shown in the link preview dialog. Open Graph fills in if you
+                  leave this blank.
+                </p>
               </div>
 
               <ThemePicker value={theme} onChange={setTheme} />

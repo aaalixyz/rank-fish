@@ -38,6 +38,12 @@ const messageSchema = z
   .max(160, "Message is too long")
   .default("");
 
+const descriptionSchema = z
+  .string()
+  .trim()
+  .max(280, "Note is too long")
+  .default("");
+
 const levelSchema = z
   .number()
   .int()
@@ -54,8 +60,14 @@ export const createListingSchema = z.object({
     .trim()
     .min(2, "Title is too short")
     .max(120, "Title is too long"),
+  description: descriptionSchema,
   level: levelSchema,
   theme: themeSchema,
+});
+
+export const trackClickSchema = z.object({
+  id: z.string().uuid("Invalid listing"),
+  action: z.enum(["click", "visit"]),
 });
 
 export const boostListingSchema = z.object({

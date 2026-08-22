@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { listings, payments } from "@/db/schema";
 import { getEconomySnapshot } from "@/lib/economy";
-import { resolveFavicon } from "@/lib/favicon";
+import { resolveLinkMetadata } from "@/lib/link-metadata";
 import {
   levelToCents,
   minBoostLevel,
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         economy.createMinCents,
         economy.createMaxCents
       );
-      const faviconUrl = await resolveFavicon(data.url);
+      const meta = await resolveLinkMetadata(data.url);
 
       const [payment] = await db
         .insert(payments)
@@ -69,8 +69,8 @@ export async function POST(request: Request) {
           type: "create",
           url: data.url,
           title: data.title,
-          description: "",
-          faviconUrl,
+          description: data.description ?? "",
+          faviconUrl: meta.faviconUrl,
           level: data.level,
           theme: data.theme,
           targetBid: bid,

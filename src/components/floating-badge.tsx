@@ -9,7 +9,6 @@ import {
 import type { Listing } from "@/db/schema";
 import { progressToVw, type BadgeLook } from "@/lib/badge-look";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
-import { listingHref } from "@/lib/demo-data";
 import { resolvePillTheme } from "@/lib/pill-themes";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +16,7 @@ type FloatingBadgeProps = {
   listing: Listing;
   look: BadgeLook;
   onLoop: () => void;
-  demo?: boolean;
+  onOpen?: (listing: Listing) => void;
 };
 
 type PillVars = CSSProperties & {
@@ -43,12 +42,12 @@ export function FloatingBadge({
   listing,
   look,
   onLoop,
-  demo = false,
+  onOpen,
 }: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
   const theme = resolvePillTheme(listing.theme);
   const duration = visual.duration;
-  const nodeRef = useRef<HTMLAnchorElement>(null);
+  const nodeRef = useRef<HTMLButtonElement>(null);
   const lookRef = useRef(look);
   const durationRef = useRef(duration);
   const onLoopRef = useRef(onLoop);
@@ -116,12 +115,11 @@ export function FloatingBadge({
   };
 
   return (
-    <a
+    <button
+      type="button"
       ref={nodeRef}
-      href={listingHref(listing, demo)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="badge-drift group absolute left-0 will-change-transform"
+      onClick={() => onOpen?.(listing)}
+      className="badge-drift group absolute left-0 cursor-pointer border-0 bg-transparent p-0 will-change-transform"
       style={{
         top: `${look.lane * 100}%`,
         zIndex: Math.round(10 + visual.strength * 40),
@@ -146,6 +144,6 @@ export function FloatingBadge({
         ) : null}
         <span className="pill-mark__title">{listing.title}</span>
       </span>
-    </a>
+    </button>
   );
 }

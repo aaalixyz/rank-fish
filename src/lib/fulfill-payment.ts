@@ -5,6 +5,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { boostMessages, listings, payments } from "@/db/schema";
+import { resolveLinkMetadata } from "@/lib/link-metadata";
 
 export async function fulfillPaymentByCheckoutId(checkoutId: string) {
   const [payment] = await db
@@ -26,17 +27,23 @@ export async function fulfillPaymentByCheckoutId(checkoutId: string) {
   }
 
   if (payment.type === "create") {
+    const meta = await resolveLinkMetadata(payment.url);
+
     const [listing] = await db
       .insert(listings)
       .values({
         url: payment.url,
         title: payment.title,
         description: payment.description,
-        faviconUrl: payment.faviconUrl ?? "",
+        faviconUrl: payment.faviconUrl || meta.faviconUrl,
+        ogImageUrl: meta.ogImageUrl,
+        ogDescription: meta.ogDescription,
+        ogFetchedAt: new Date(),
         bid: payment.targetBid,
         level: payment.level ?? 1,
         theme: payment.theme ?? "paper",
         clicks: 0,
+        visits: 0,
       })
       .returning();
 

@@ -8,7 +8,7 @@ export async function getEconomySnapshot(): Promise<EconomySnapshot> {
     const [row] = await db
       .select({
         listingCount: sql<number>`count(*)::int`,
-        totalClicks: sql<number>`coalesce(sum(${listings.clicks}), 0)::int`,
+        totalClicks: sql<number>`coalesce(sum(${listings.clicks} + ${listings.visits}), 0)::int`,
       })
       .from(listings);
 
