@@ -13,7 +13,10 @@ export const DEMO_LOGO_CLICK_KEY = "rankfish:demo-logo-click:v1";
 /** Two logo clicks within this window toggles demo mode. */
 export const DEMO_LOGO_CLICK_MS = 1000;
 
-export type DemoListing = Listing & { messages: BoostMessage[] };
+export type DemoListing = Listing & {
+  messages: BoostMessage[];
+  supporters: number;
+};
 
 type Seed = {
   title: string;
@@ -209,10 +212,18 @@ function buildDemoBoard(): { listings: DemoListing[]; economy: EconomySnapshot }
       createdAt,
       updatedAt,
       messages,
+      // Create payment + each boost note ≈ completed payments
+      supporters: 1 + messageCount,
     };
   });
 
-  listings.sort((a, b) => b.bid - a.bid || b.clicks - a.clicks);
+  listings.sort((a, b) => {
+    if (b.level !== a.level) return b.level - a.level;
+    const scoreA = a.level * a.supporters;
+    const scoreB = b.level * b.supporters;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return b.clicks - a.clicks;
+  });
   return { listings, economy };
 }
 
