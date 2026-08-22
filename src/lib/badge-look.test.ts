@@ -19,7 +19,7 @@ for (const id of ids) {
   assert.ok(look, `missing ${id}`);
   assert.ok(look.lane >= 0.16 && look.lane <= 0.82, `lane ${look.lane}`);
   assert.ok(
-    look.progress >= 0.16 && look.progress <= 0.84,
+    look.progress >= 0.18 && look.progress <= 0.68,
     `progress ${look.progress}`
   );
   assert.ok(Math.abs(look.rotateDeg) >= 4 && Math.abs(look.rotateDeg) <= 13);

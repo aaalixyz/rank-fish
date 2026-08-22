@@ -12,9 +12,10 @@ export const DRIFT_FROM_VW = -18;
 export const DRIFT_TO_VW = 108;
 export const DRIFT_SPAN_VW = DRIFT_TO_VW - DRIFT_FROM_VW;
 
-/** Keep starting X on-screen so a reload never looks empty. */
-const VISIBLE_PROGRESS_MIN = 0.16;
-const VISIBLE_PROGRESS_MAX = 0.84;
+/** Keep starting X on-screen so a reload never looks empty.
+ *  Stay left of ~0.68 so a wide Lv 25 pill is not already half off the right. */
+const VISIBLE_PROGRESS_MIN = 0.18;
+const VISIBLE_PROGRESS_MAX = 0.68;
 
 const MIN_Y = 0.16;
 const MAX_Y = 0.82;
