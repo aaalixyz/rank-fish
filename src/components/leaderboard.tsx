@@ -121,6 +121,16 @@ export function Leaderboard({ listings, economy, demo = false }: LeaderboardProp
                             <p className="mt-0.5 truncate text-xs text-neutral-400 sm:text-sm">
                               {listing.url}
                             </p>
+                            {listing.xHandle ? (
+                              <a
+                                href={xProfileUrl(listing.xHandle)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-0.5 inline-block text-xs text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+                              >
+                                @{listing.xHandle}
+                              </a>
+                            ) : null}
                           </div>
                         </a>
 

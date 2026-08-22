@@ -73,6 +73,7 @@ export async function POST(request: Request) {
           faviconUrl,
           level: data.level,
           theme: data.theme,
+          xHandle: data.xHandle ?? "",
           targetBid: bid,
           amountPaid: bid,
           status: "pending",

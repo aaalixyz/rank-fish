@@ -49,6 +49,7 @@ export function CreateListingDialog({
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState(10);
   const [theme, setTheme] = useState<PillThemeId>(DEFAULT_PILL_THEME);
+  const [xHandle, setXHandle] = useState("");
   const [economy, setEconomy] = useState<EconomySnapshot>(
     economyProp ?? buildEconomy(0, 0)
   );
@@ -100,6 +101,7 @@ export function CreateListingDialog({
           title: title.trim(),
           level,
           theme,
+          xHandle: xHandle.trim(),
         }),
       });
 
@@ -166,6 +168,23 @@ export function CreateListingDialog({
                   onChange={(e) => setTitle(e.target.value)}
                   className="border-neutral-200 bg-neutral-50"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-x">X handle (optional)</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                    @
+                  </span>
+                  <Input
+                    id="create-x"
+                    maxLength={40}
+                    placeholder="you"
+                    value={xHandle}
+                    onChange={(e) => setXHandle(e.target.value)}
+                    className="border-neutral-200 bg-neutral-50 pl-7"
+                  />
+                </div>
               </div>
 
               <ThemePicker value={theme} onChange={setTheme} />
