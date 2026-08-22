@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Syne } from "next/font/google";
+import { DemoModeProvider } from "@/components/demo-mode";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${syne.variable} min-h-screen bg-[#f7f6f3] font-sans text-neutral-900 antialiased`}
       >
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <DemoModeProvider>{children}</DemoModeProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

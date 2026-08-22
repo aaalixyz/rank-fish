@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { BoostDialog } from "@/components/boost-dialog";
 import type { EconomySnapshot } from "@/lib/pricing";
 import { CLICKS_PER_SLOT } from "@/lib/pricing";
+import { listingHref } from "@/lib/demo-data";
 import { cn } from "@/lib/utils";
 
 export type ListingWithMessages = Listing & {
@@ -19,6 +20,7 @@ export type ListingWithMessages = Listing & {
 type LeaderboardProps = {
   listings: ListingWithMessages[];
   economy: EconomySnapshot;
+  demo?: boolean;
 };
 
 type SortKey = "site" | "title" | "supporters" | "clicks" | "level";
@@ -79,7 +81,11 @@ const COLUMNS: { key: SortKey; label: string; align?: "left" | "right" }[] = [
   { key: "level", label: "Lv", align: "right" },
 ];
 
-export function Leaderboard({ listings, economy }: LeaderboardProps) {
+export function Leaderboard({
+  listings,
+  economy,
+  demo = false,
+}: LeaderboardProps) {
   const [boostTarget, setBoostTarget] = useState<Listing | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("level");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
@@ -192,6 +198,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                     const recent = listing.messages.slice(0, 2);
                     const isTop = index < 3;
                     const pill = resolvePillTheme(listing.theme);
+                    const href = listingHref(listing, demo);
 
                     return (
                       <tr
@@ -203,7 +210,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                       >
                         <td className="px-3 py-3.5 align-middle sm:px-4">
                           <a
-                            href={`/api/click?id=${listing.id}`}
+                            href={href}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex min-w-0 items-center gap-2.5"
@@ -232,7 +239,7 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                         <td className="px-3 py-3.5 align-middle sm:px-4">
                           <div className="min-w-0">
                             <a
-                              href={`/api/click?id=${listing.id}`}
+                              href={href}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="group/title inline-flex max-w-full items-center gap-1.5 font-[family-name:var(--font-display)] text-[15px] leading-snug text-neutral-900"
@@ -248,6 +255,16 @@ export function Leaderboard({ listings, economy }: LeaderboardProps) {
                               <span className="truncate">{listing.title}</span>
                               <ArrowUpRight className="size-3.5 shrink-0 text-neutral-300 opacity-0 transition group-hover/title:opacity-100" />
                             </a>
+                            {listing.xHandle ? (
+                              <a
+                                href={xProfileUrl(listing.xHandle)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-0.5 block truncate text-[11px] text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+                              >
+                                @{listing.xHandle}
+                              </a>
+                            ) : null}
                             {recent.length > 0 ? (
                               <p className="mt-1 truncate text-[11px] text-neutral-400">
                                 “{recent[0].message}”

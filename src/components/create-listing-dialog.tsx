@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LevelSlider } from "@/components/level-slider";
 import { ThemePicker } from "@/components/theme-picker";
+import { useDemoMode } from "@/components/demo-mode";
 import { formatUsd, getLevelVisual } from "@/lib/bid-scale";
 import {
   DEFAULT_PILL_THEME,
@@ -42,11 +43,13 @@ export function CreateListingDialog({
   triggerSize = "default",
   economy: economyProp,
 }: CreateListingDialogProps) {
+  const demo = useDemoMode();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState(10);
   const [theme, setTheme] = useState<PillThemeId>(DEFAULT_PILL_THEME);
+  const [xHandle, setXHandle] = useState("");
   const [economy, setEconomy] = useState<EconomySnapshot>(
     economyProp ?? buildEconomy(0, 0)
   );
@@ -58,7 +61,7 @@ export function CreateListingDialog({
   }, [economyProp]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || demo.active) return;
     let cancelled = false;
     fetch("/api/economy")
       .then((r) => r.json())
@@ -69,7 +72,7 @@ export function CreateListingDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, demo.active]);
 
   const priceCents = useMemo(
     () =>
@@ -77,11 +80,16 @@ export function CreateListingDialog({
     [level, economy.createMinCents, economy.createMaxCents]
   );
   const previewTheme = resolvePillTheme(theme);
-  const previewStrength = getLevelVisual(level).strength;
+  const previewVisual = getLevelVisual(level);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (demo.active) {
+      setError("Demo board — checkout is off. Click the logo twice to leave.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -93,6 +101,7 @@ export function CreateListingDialog({
           title: title.trim(),
           level,
           theme,
+          xHandle: xHandle.trim(),
         }),
       });
 
@@ -161,6 +170,23 @@ export function CreateListingDialog({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="create-x">X handle (optional)</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                    @
+                  </span>
+                  <Input
+                    id="create-x"
+                    maxLength={40}
+                    placeholder="you"
+                    value={xHandle}
+                    onChange={(e) => setXHandle(e.target.value)}
+                    className="border-neutral-200 bg-neutral-50 pl-7"
+                  />
+                </div>
+              </div>
+
               <ThemePicker value={theme} onChange={setTheme} />
 
               <div
@@ -171,10 +197,12 @@ export function CreateListingDialog({
                   className="pill-mark pill-mark--static"
                   style={
                     {
-                      "--s": previewStrength,
+                      "--s": previewVisual.strength,
                       "--pill-bg": previewTheme.bg,
                       "--pill-fg": previewTheme.fg,
                       "--pill-outline": previewTheme.outline,
+                      "--pill-weight": String(previewVisual.weight),
+                      "--pill-tracking": `${previewVisual.trackingEm}em`,
                     } as CSSProperties
                   }
                 >

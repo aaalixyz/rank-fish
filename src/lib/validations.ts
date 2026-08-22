@@ -56,6 +56,7 @@ export const createListingSchema = z.object({
     .max(120, "Title is too long"),
   level: levelSchema,
   theme: themeSchema,
+  xHandle: xHandleSchema.default(""),
 });
 
 export const boostListingSchema = z.object({

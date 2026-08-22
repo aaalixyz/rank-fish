@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CreateListingDialog } from "@/components/create-listing-dialog";
+import { isDemoLogoDoubleClick, useDemoMode } from "@/components/demo-mode";
 import type { EconomySnapshot } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,13 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ economy }: SiteHeaderProps) {
   const pathname = usePathname();
+  const demo = useDemoMode();
+
+  function onLogoClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isDemoLogoDoubleClick()) return;
+    e.preventDefault();
+    demo.toggle();
+  }
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30">
@@ -30,9 +38,17 @@ export function SiteHeader({ economy }: SiteHeaderProps) {
         >
           <Link
             href="/"
-            className="font-[family-name:var(--font-display)] text-xl tracking-tight text-neutral-900 sm:text-2xl"
+            onClick={onLogoClick}
+            onDoubleClick={(e) => e.preventDefault()}
+            className="select-none font-[family-name:var(--font-display)] text-xl tracking-tight text-neutral-900 sm:text-2xl"
+            title={demo.active ? "Demo board on — click twice to leave" : undefined}
           >
-            rank<span className="text-neutral-400">.fish</span>
+            rank<span className={demo.active ? "text-amber-600" : "text-neutral-400"}>.fish</span>
+            {demo.active ? (
+              <span className="ml-2 align-middle text-[10px] font-sans font-medium tracking-[0.18em] text-amber-700 uppercase">
+                demo
+              </span>
+            ) : null}
           </Link>
 
           <nav className="flex items-center gap-1 sm:gap-2">
