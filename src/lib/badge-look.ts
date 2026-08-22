@@ -2,11 +2,12 @@
  * Live field scatter. Rolled with Math.random() on the client so every
  * refresh (and every L→R wrap) gets a new X, Y, and tilt.
  *
+ * Type size, weight, and drift speed are NOT rolled here — those come
+ * from listing.level via getLevelVisual.
+ *
  * X is an explicit 0–1 progress along the drift path — not a CSS
  * animation-delay — so the first paint is already in a random place.
  */
-
-const WEIGHTS = [500, 600, 700, 800] as const;
 
 export const DRIFT_FROM_VW = -18;
 export const DRIFT_TO_VW = 108;
@@ -30,12 +31,8 @@ export type BadgeLook = {
   /** Seconds to sit still at the rolled XY before drifting */
   enterDelay: number;
   rotateDeg: number;
-  weight: (typeof WEIGHTS)[number];
-  trackingEm: number;
-  scale: number;
   bobEm: number;
   bobDuration: number;
-  speedJitter: number;
 };
 
 export function progressToVw(progress: number): number {
@@ -46,24 +43,16 @@ function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-function pickWeight(): (typeof WEIGHTS)[number] {
-  return WEIGHTS[Math.floor(Math.random() * WEIGHTS.length)];
-}
-
-export function rollPersonality(): Omit<
+export function rollMotion(): Pick<
   BadgeLook,
-  "lane" | "progress" | "enterDelay"
+  "rotateDeg" | "bobEm" | "bobDuration"
 > {
   const tiltSign = Math.random() < 0.5 ? -1 : 1;
   return {
     // Always a few degrees so tilt is visible; cap so it stays slight.
     rotateDeg: tiltSign * rand(4, 13),
-    weight: pickWeight(),
-    trackingEm: rand(-0.05, 0.06),
-    scale: rand(0.92, 1.1),
     bobEm: rand(0.16, 0.5),
     bobDuration: rand(3.6, 7.4),
-    speedJitter: rand(0.78, 1.22),
   };
 }
 
@@ -101,7 +90,7 @@ export function rollField(ids: string[]): Map<string, BadgeLook> {
     progresses.push(progress);
 
     map.set(id, {
-      ...rollPersonality(),
+      ...rollMotion(),
       lane,
       progress,
       enterDelay: rank * rand(0.08, 0.22),
@@ -116,13 +105,10 @@ export function rerollOnLoop(
   current: BadgeLook,
   occupiedLanes: number[]
 ): BadgeLook {
-  const next = rollPersonality();
+  const next = rollMotion();
   return {
     ...current,
     rotateDeg: next.rotateDeg,
-    weight: next.weight,
-    trackingEm: next.trackingEm,
-    scale: next.scale,
     bobEm: next.bobEm,
     bobDuration: next.bobDuration,
     lane: rollLane(occupiedLanes),

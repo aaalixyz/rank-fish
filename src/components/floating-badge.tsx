@@ -26,7 +26,6 @@ type PillVars = CSSProperties & {
   "--pill-fg": string;
   "--pill-outline": string;
   "--pill-rotate": string;
-  "--pill-scale": string;
   "--pill-weight": string;
   "--pill-tracking": string;
   "--pill-opacity": string;
@@ -48,7 +47,7 @@ export function FloatingBadge({
 }: FloatingBadgeProps) {
   const visual = getLevelVisual(listing.level);
   const theme = resolvePillTheme(listing.theme);
-  const duration = visual.duration * look.speedJitter;
+  const duration = visual.duration;
   const nodeRef = useRef<HTMLAnchorElement>(null);
   const lookRef = useRef(look);
   const durationRef = useRef(duration);
@@ -108,9 +107,8 @@ export function FloatingBadge({
     "--pill-fg": theme.fg,
     "--pill-outline": theme.outline,
     "--pill-rotate": `${look.rotateDeg.toFixed(2)}deg`,
-    "--pill-scale": look.scale.toFixed(3),
-    "--pill-weight": String(look.weight),
-    "--pill-tracking": `${look.trackingEm.toFixed(4)}em`,
+    "--pill-weight": String(visual.weight),
+    "--pill-tracking": `${visual.trackingEm.toFixed(4)}em`,
     "--pill-opacity": visual.opacity.toFixed(3),
     "--bob": `${look.bobEm.toFixed(3)}em`,
     "--bob-duration": `${look.bobDuration.toFixed(2)}s`,
